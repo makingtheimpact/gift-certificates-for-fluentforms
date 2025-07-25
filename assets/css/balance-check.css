@@ -1,0 +1,216 @@
+/**
+ * Gift Certificate Balance Check Styles
+ */
+
+.gift-certificate-balance-form {
+    max-width: 500px;
+    margin: 20px auto;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.gift-certificate-balance-form h3 {
+    margin: 0 0 20px 0;
+    color: #333;
+    text-align: center;
+    font-size: 1.5em;
+}
+
+.balance-form-fields {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.gift-certificate-code {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+    font-family: monospace;
+    text-transform: uppercase;
+}
+
+.gift-certificate-code:focus {
+    outline: none;
+    border-color: #0073aa;
+    box-shadow: 0 0 0 2px rgba(0,115,170,0.2);
+}
+
+.balance-check-button {
+    padding: 12px 24px;
+    background: #0073aa;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.balance-check-button:hover {
+    background: #005a87;
+}
+
+.balance-check-button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.balance-result {
+    min-height: 20px;
+}
+
+.balance-success {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 4px;
+    padding: 15px;
+    color: #155724;
+}
+
+.balance-error {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    padding: 15px;
+    color: #721c24;
+}
+
+.loading {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+}
+
+.balance-header h4 {
+    margin: 0 0 15px 0;
+    color: #155724;
+    font-size: 1.2em;
+}
+
+.balance-details {
+    display: grid;
+    gap: 10px;
+}
+
+.balance-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #c3e6cb;
+}
+
+.balance-row:last-child {
+    border-bottom: none;
+}
+
+.balance-row .label {
+    font-weight: bold;
+    color: #333;
+}
+
+.balance-row .value {
+    font-weight: bold;
+    color: #0073aa;
+}
+
+.status-active {
+    color: #28a745;
+}
+
+.status-expired {
+    color: #dc3545;
+}
+
+.status-pending_delivery {
+    color: #ffc107;
+}
+
+.status-delivered {
+    color: #17a2b8;
+}
+
+/* Shortcode specific styles */
+.gift-certificate-balance-shortcode {
+    margin: 20px 0;
+}
+
+.balance-instructions {
+    background: #e7f3ff;
+    border: 1px solid #b3d9ff;
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 20px;
+    color: #005a87;
+}
+
+.balance-instructions p {
+    margin: 0;
+    font-size: 14px;
+}
+
+/* Responsive design */
+@media (max-width: 600px) {
+    .gift-certificate-balance-form {
+        margin: 10px;
+        padding: 15px;
+    }
+    
+    .balance-form-fields {
+        flex-direction: column;
+    }
+    
+    .balance-check-button {
+        width: 100%;
+    }
+    
+    .balance-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+}
+
+/* Purchase form styles */
+.gift-certificate-purchase-form {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.gift-certificate-purchase-form h2 {
+    margin: 0 0 20px 0;
+    color: #333;
+    text-align: center;
+    font-size: 1.8em;
+}
+
+/* Error messages */
+.error {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    padding: 15px;
+    color: #721c24;
+    margin: 10px 0;
+}
+
+/* Success messages */
+.success {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 4px;
+    padding: 15px;
+    color: #155724;
+    margin: 10px 0;
+} 

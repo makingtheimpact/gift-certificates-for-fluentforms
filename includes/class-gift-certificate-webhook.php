@@ -1,0 +1,232 @@
+<?php
+/**
+ * Webhook handler for Fluent Forms submissions
+ */
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+class GiftCertificateWebhook {
+    
+    private $database;
+    private $settings;
+    
+    public function __construct() {
+        $this->database = new GiftCertificateDatabase();
+        $this->settings = get_option('gift_certificates_ff_settings', array());
+        
+        add_action('fluentform/form_submission_completed', array($this, 'handle_form_submission'), 10, 3);
+        add_action('wp_ajax_gift_certificate_webhook', array($this, 'handle_ajax_webhook'));
+        add_action('wp_ajax_nopriv_gift_certificate_webhook', array($this, 'handle_ajax_webhook'));
+    }
+    
+    public function handle_form_submission($entry_id, $form_data, $form) {
+        // Check if this is the gift certificate form
+        if ($form->id != $this->settings['gift_certificate_form_id']) {
+            return;
+        }
+        
+        // Process the submission
+        $this->process_gift_certificate_submission($entry_id, $form_data, $form);
+    }
+    
+    public function handle_ajax_webhook() {
+        // Verify nonce for security
+        if (!wp_verify_nonce($_POST['nonce'], 'gift_certificate_webhook')) {
+            wp_die('Security check failed');
+        }
+        
+        $entry_id = intval($_POST['entry_id']);
+        $form_id = intval($_POST['form_id']);
+        
+        // Get form data from Fluent Forms
+        $entry = wpFluent()->table('fluentform_submissions')
+            ->where('id', $entry_id)
+            ->first();
+            
+        if (!$entry) {
+            wp_die('Entry not found');
+        }
+        
+        $form_data = json_decode($entry->response, true);
+        $form = wpFluent()->table('fluentform_forms')->where('id', $form_id)->first();
+        
+        $this->process_gift_certificate_submission($entry_id, $form_data, $form);
+        
+        wp_die('Success');
+    }
+    
+    private function process_gift_certificate_submission($entry_id, $form_data, $form) {
+        try {
+            // Extract form data using configured field names
+            $amount = $this->get_field_value($form_data, $this->settings['amount_field_name']);
+            $recipient_email = $this->get_field_value($form_data, $this->settings['recipient_email_field_name']);
+            $recipient_name = $this->get_field_value($form_data, $this->settings['recipient_name_field_name']);
+            $sender_name = $this->get_field_value($form_data, $this->settings['sender_name_field_name']);
+            $message = $this->get_field_value($form_data, $this->settings['message_field_name']);
+            $delivery_date = $this->get_field_value($form_data, $this->settings['delivery_date_field_name']);
+            
+            // Validate required fields
+            if (empty($amount) || empty($recipient_email) || empty($recipient_name)) {
+                throw new Exception('Required fields are missing');
+            }
+            
+            // Validate amount
+            $amount = floatval($amount);
+            if ($amount <= 0) {
+                throw new Exception('Invalid gift certificate amount');
+            }
+            
+            // Validate email
+            if (!is_email($recipient_email)) {
+                throw new Exception('Invalid recipient email address');
+            }
+            
+            // Generate unique coupon code
+            $coupon_code = $this->generate_coupon_code();
+            
+            // Create gift certificate record
+            $gift_certificate_data = array(
+                'coupon_code' => $coupon_code,
+                'original_amount' => $amount,
+                'current_balance' => $amount,
+                'recipient_email' => $recipient_email,
+                'recipient_name' => $recipient_name,
+                'sender_name' => $sender_name,
+                'message' => $message,
+                'delivery_date' => $delivery_date ? date('Y-m-d', strtotime($delivery_date)) : null,
+                'status' => $delivery_date ? 'pending_delivery' : 'active'
+            );
+            
+            $gift_certificate_id = $this->database->create_gift_certificate($gift_certificate_data);
+            
+            if (!$gift_certificate_id) {
+                throw new Exception('Failed to create gift certificate record');
+            }
+            
+            // Create Fluent Forms Pro coupon
+            $coupon_created = $this->create_fluent_forms_coupon($coupon_code, $amount, $gift_certificate_id);
+            
+            if (!$coupon_created) {
+                // Rollback gift certificate creation
+                $this->database->update_gift_certificate_status($gift_certificate_id, 'error');
+                throw new Exception('Failed to create coupon code');
+            }
+            
+            // Send gift certificate email
+            $this->send_gift_certificate_email($gift_certificate_id, $entry_id);
+            
+            // Log success
+            error_log("Gift certificate created successfully: ID {$gift_certificate_id}, Coupon: {$coupon_code}");
+            
+        } catch (Exception $e) {
+            error_log("Gift certificate creation failed: " . $e->getMessage());
+            
+            // Update entry with error message
+            wpFluent()->table('fluentform_submissions')
+                ->where('id', $entry_id)
+                ->update(array(
+                    'status' => 'failed',
+                    'response' => json_encode(array_merge(
+                        json_decode($entry->response, true),
+                        array('gift_certificate_error' => $e->getMessage())
+                    ))
+                ));
+        }
+    }
+    
+    private function get_field_value($form_data, $field_name) {
+        // Handle different field name formats
+        if (isset($form_data[$field_name])) {
+            return $form_data[$field_name];
+        }
+        
+        // Try with field name as key
+        foreach ($form_data as $key => $value) {
+            if (strpos($key, $field_name) !== false) {
+                return $value;
+            }
+        }
+        
+        return '';
+    }
+    
+    private function generate_coupon_code() {
+        $prefix = 'GC';
+        $length = 8;
+        $max_attempts = 10;
+        
+        for ($i = 0; $i < $max_attempts; $i++) {
+            $code = $prefix . strtoupper(substr(md5(uniqid()), 0, $length));
+            
+            // Check if code already exists
+            $existing = $this->database->get_gift_certificate_by_coupon_code($code);
+            if (!$existing) {
+                return $code;
+            }
+        }
+        
+        throw new Exception('Unable to generate unique coupon code');
+    }
+    
+    private function create_fluent_forms_coupon($coupon_code, $amount, $gift_certificate_id) {
+        // Check if Fluent Forms Pro coupon functionality is available
+        if (!class_exists('FluentFormPro\Classes\Coupon\CouponService')) {
+            return false;
+        }
+        
+        try {
+            $coupon_service = new FluentFormPro\Classes\Coupon\CouponService();
+            
+            $coupon_data = array(
+                'title' => "Gift Certificate - {$coupon_code}",
+                'code' => $coupon_code,
+                'amount' => $amount,
+                'amount_type' => 'fixed',
+                'status' => 'active',
+                'usage_limit' => 1,
+                'used_count' => 0,
+                'minimum_amount' => 0,
+                'maximum_amount' => $amount,
+                'start_date' => current_time('Y-m-d'),
+                'end_date' => date('Y-m-d', strtotime('+1 year')),
+                'meta' => array(
+                    'gift_certificate_id' => $gift_certificate_id,
+                    'is_gift_certificate' => true
+                )
+            );
+            
+            $coupon_id = $coupon_service->create($coupon_data);
+            
+            return $coupon_id ? true : false;
+            
+        } catch (Exception $e) {
+            error_log("Failed to create Fluent Forms coupon: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    private function send_gift_certificate_email($gift_certificate_id, $entry_id) {
+        $gift_certificate = $this->database->get_gift_certificate($gift_certificate_id);
+        
+        if (!$gift_certificate) {
+            return false;
+        }
+        
+        // Check if delivery should be delayed
+        if ($gift_certificate->delivery_date && $gift_certificate->delivery_date > current_time('Y-m-d')) {
+            // Schedule delivery for later
+            wp_schedule_single_event(
+                strtotime($gift_certificate->delivery_date . ' 09:00:00'),
+                'gift_certificate_scheduled_delivery',
+                array($gift_certificate_id)
+            );
+            return true;
+        }
+        
+        // Send email immediately
+        $email_handler = new GiftCertificateEmail();
+        return $email_handler->send_gift_certificate_email($gift_certificate_id);
+    }
+} 

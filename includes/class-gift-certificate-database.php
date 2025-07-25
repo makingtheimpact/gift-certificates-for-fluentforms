@@ -1,0 +1,261 @@
+<?php
+/**
+ * Database handler for gift certificates
+ */
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+class GiftCertificateDatabase {
+    
+    private $gift_certificates_table;
+    private $transactions_table;
+    
+    public function __construct() {
+        global $wpdb;
+        $this->gift_certificates_table = $wpdb->prefix . 'gift_certificates';
+        $this->transactions_table = $wpdb->prefix . 'gift_certificate_transactions';
+    }
+    
+    public function create_tables() {
+        global $wpdb;
+        
+        $charset_collate = $wpdb->get_charset_collate();
+        
+        // Gift certificates table
+        $sql_gift_certificates = "CREATE TABLE {$this->gift_certificates_table} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            coupon_code varchar(50) NOT NULL,
+            original_amount decimal(10,2) NOT NULL,
+            current_balance decimal(10,2) NOT NULL,
+            recipient_email varchar(255) NOT NULL,
+            recipient_name varchar(255) NOT NULL,
+            sender_name varchar(255) NOT NULL,
+            message text,
+            delivery_date date DEFAULT NULL,
+            status varchar(20) DEFAULT 'active',
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY coupon_code (coupon_code),
+            KEY recipient_email (recipient_email),
+            KEY status (status),
+            KEY delivery_date (delivery_date)
+        ) $charset_collate;";
+        
+        // Transactions table for tracking usage
+        $sql_transactions = "CREATE TABLE {$this->transactions_table} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            gift_certificate_id bigint(20) unsigned NOT NULL,
+            amount_used decimal(10,2) NOT NULL,
+            order_id varchar(255) DEFAULT NULL,
+            form_submission_id bigint(20) unsigned DEFAULT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY gift_certificate_id (gift_certificate_id),
+            KEY order_id (order_id),
+            FOREIGN KEY (gift_certificate_id) REFERENCES {$this->gift_certificates_table}(id) ON DELETE CASCADE
+        ) $charset_collate;";
+        
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+        dbDelta($sql_gift_certificates);
+        dbDelta($sql_transactions);
+    }
+    
+    public function create_gift_certificate($data) {
+        global $wpdb;
+        
+        $defaults = array(
+            'coupon_code' => '',
+            'original_amount' => 0,
+            'current_balance' => 0,
+            'recipient_email' => '',
+            'recipient_name' => '',
+            'sender_name' => '',
+            'message' => '',
+            'delivery_date' => null,
+            'status' => 'active'
+        );
+        
+        $data = wp_parse_args($data, $defaults);
+        
+        // Sanitize data
+        $data = array_map('sanitize_text_field', $data);
+        $data['message'] = sanitize_textarea_field($data['message']);
+        $data['original_amount'] = floatval($data['original_amount']);
+        $data['current_balance'] = floatval($data['current_balance']);
+        
+        $result = $wpdb->insert(
+            $this->gift_certificates_table,
+            $data,
+            array('%s', '%f', '%f', '%s', '%s', '%s', '%s', '%s', '%s')
+        );
+        
+        if ($result === false) {
+            return false;
+        }
+        
+        return $wpdb->insert_id;
+    }
+    
+    public function get_gift_certificate($id) {
+        global $wpdb;
+        
+        return $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM {$this->gift_certificates_table} WHERE id = %d",
+                $id
+            )
+        );
+    }
+    
+    public function get_gift_certificate_by_coupon_code($coupon_code) {
+        global $wpdb;
+        
+        return $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM {$this->gift_certificates_table} WHERE coupon_code = %s AND status = 'active'",
+                $coupon_code
+            )
+        );
+    }
+    
+    public function update_gift_certificate_balance($id, $new_balance) {
+        global $wpdb;
+        
+        $result = $wpdb->update(
+            $this->gift_certificates_table,
+            array('current_balance' => $new_balance),
+            array('id' => $id),
+            array('%f'),
+            array('%d')
+        );
+        
+        if ($result === false) {
+            return false;
+        }
+        
+        // If balance is zero, mark as expired
+        if ($new_balance <= 0) {
+            $this->update_gift_certificate_status($id, 'expired');
+        }
+        
+        return true;
+    }
+    
+    public function update_gift_certificate_status($id, $status) {
+        global $wpdb;
+        
+        return $wpdb->update(
+            $this->gift_certificates_table,
+            array('status' => $status),
+            array('id' => $id),
+            array('%s'),
+            array('%d')
+        );
+    }
+    
+    public function record_transaction($gift_certificate_id, $amount_used, $order_id = null, $form_submission_id = null) {
+        global $wpdb;
+        
+        return $wpdb->insert(
+            $this->transactions_table,
+            array(
+                'gift_certificate_id' => $gift_certificate_id,
+                'amount_used' => $amount_used,
+                'order_id' => $order_id,
+                'form_submission_id' => $form_submission_id
+            ),
+            array('%d', '%f', '%s', '%d')
+        );
+    }
+    
+    public function get_gift_certificates($args = array()) {
+        global $wpdb;
+        
+        $defaults = array(
+            'status' => 'active',
+            'limit' => 20,
+            'offset' => 0,
+            'orderby' => 'created_at',
+            'order' => 'DESC'
+        );
+        
+        $args = wp_parse_args($args, $defaults);
+        
+        $where_clause = "WHERE 1=1";
+        $where_values = array();
+        
+        if (!empty($args['status'])) {
+            $where_clause .= " AND status = %s";
+            $where_values[] = $args['status'];
+        }
+        
+        if (!empty($args['recipient_email'])) {
+            $where_clause .= " AND recipient_email = %s";
+            $where_values[] = $args['recipient_email'];
+        }
+        
+        $orderby = sanitize_sql_orderby($args['orderby'] . ' ' . $args['order']);
+        $limit = intval($args['limit']);
+        $offset = intval($args['offset']);
+        
+        $sql = "SELECT * FROM {$this->gift_certificates_table} 
+                {$where_clause} 
+                ORDER BY {$orderby} 
+                LIMIT {$limit} OFFSET {$offset}";
+        
+        if (!empty($where_values)) {
+            $sql = $wpdb->prepare($sql, $where_values);
+        }
+        
+        return $wpdb->get_results($sql);
+    }
+    
+    public function get_transactions($gift_certificate_id) {
+        global $wpdb;
+        
+        return $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM {$this->transactions_table} 
+                 WHERE gift_certificate_id = %d 
+                 ORDER BY created_at DESC",
+                $gift_certificate_id
+            )
+        );
+    }
+    
+    public function get_pending_deliveries() {
+        global $wpdb;
+        
+        return $wpdb->get_results(
+            "SELECT * FROM {$this->gift_certificates_table} 
+             WHERE delivery_date <= CURDATE() 
+             AND status = 'pending_delivery'"
+        );
+    }
+    
+    public function get_stats() {
+        global $wpdb;
+        
+        $stats = array();
+        
+        // Total gift certificates
+        $stats['total'] = $wpdb->get_var("SELECT COUNT(*) FROM {$this->gift_certificates_table}");
+        
+        // Active gift certificates
+        $stats['active'] = $wpdb->get_var("SELECT COUNT(*) FROM {$this->gift_certificates_table} WHERE status = 'active'");
+        
+        // Total value issued
+        $stats['total_value'] = $wpdb->get_var("SELECT SUM(original_amount) FROM {$this->gift_certificates_table}");
+        
+        // Total value redeemed
+        $stats['total_redeemed'] = $wpdb->get_var("SELECT SUM(amount_used) FROM {$this->transactions_table}");
+        
+        // Pending deliveries
+        $stats['pending_delivery'] = $wpdb->get_var("SELECT COUNT(*) FROM {$this->gift_certificates_table} WHERE status = 'pending_delivery'");
+        
+        return $stats;
+    }
+} 

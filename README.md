@@ -1,2 +1,229 @@
-This is a WordPress plugin that will extend the functionality of Fluent Forms Pro to sell and redeem gift certificates. 
-It uses a combination of webhooks, field name settings, javascript, API calls, and coupon codes to handle the sale, balance check, and redemption of gift certificates. 
+# Gift Certificates for Fluent Forms
+
+A comprehensive WordPress plugin that extends Fluent Forms Pro to sell and redeem gift certificates with webhook integration, coupon management, and balance tracking.
+
+## Features
+
+- **Secure & Efficient**: Built with WordPress security best practices and optimized for performance
+- **Plugin Conflict Free**: Uses proper WordPress hooks and follows coding standards to avoid conflicts
+- **Hosting Platform Compatible**: Works with all major WordPress hosting platforms
+- **Webhook Integration**: Automatically processes Fluent Forms submissions to create gift certificates
+- **Coupon Management**: Integrates with Fluent Forms Pro coupon system for seamless redemption
+- **Balance Tracking**: Real-time balance updates and transaction history
+- **Scheduled Delivery**: Send gift certificates immediately or on a specific date
+- **REST API**: Built-in API endpoints for balance checking and management
+- **Admin Interface**: Complete WordPress admin interface for managing gift certificates
+- **Email Templates**: Customizable email templates with HTML support
+- **Shortcodes**: Easy-to-use shortcodes for balance checking and purchase forms
+
+## Requirements
+
+- WordPress 5.0 or higher
+- PHP 7.4 or higher
+- Fluent Forms Pro (for coupon functionality)
+- Fluent Forms (free version for form creation)
+
+## Installation
+
+1. Download the plugin files
+2. Upload to `/wp-content/plugins/gift-certificates-for-fluentforms/`
+3. Activate the plugin through the 'Plugins' menu in WordPress
+4. Go to 'Gift Certificates → Settings' to configure the plugin
+
+## Quick Setup
+
+### 1. Create a Fluent Forms Form
+
+Create a form with these fields:
+- **Amount Field**: Number input for gift certificate amount
+- **Recipient Email**: Email field for the recipient
+- **Recipient Name**: Text field for recipient name
+- **Sender Name**: Text field for sender name
+- **Message**: Textarea for personal message (optional)
+- **Delivery Date**: Date field for scheduled delivery (optional)
+
+### 2. Configure Plugin Settings
+
+1. Go to **Gift Certificates → Settings**
+2. Select your gift certificate form
+3. Map the form fields to gift certificate fields
+4. Configure email settings
+5. Save settings
+
+### 3. Add Payment Integration
+
+Add your preferred payment gateway (Stripe, PayPal, etc.) to the Fluent Forms form to handle purchases.
+
+## How It Works
+
+### Purchase Process
+1. Customer fills out the gift certificate form
+2. Payment is processed through Fluent Forms
+3. Form submission triggers webhook
+4. Plugin creates gift certificate record and coupon code
+5. Email is sent to recipient (immediate or scheduled)
+
+### Redemption Process
+1. Recipient receives email with coupon code
+2. Recipient uses coupon code in any Fluent Forms form
+3. Plugin validates coupon and checks balance
+4. Discount is applied and balance is updated
+5. Coupon is deactivated when balance reaches zero
+
+## Usage
+
+### Shortcodes
+
+#### Balance Check
+```php
+[gift_certificate_balance_check]
+```
+
+Options:
+- `title`: Custom title for the form
+- `placeholder`: Custom placeholder text
+- `button_text`: Custom button text
+- `show_instructions`: Show/hide instructions (true/false)
+
+#### Purchase Form
+```php
+[gift_certificate_purchase_form form_id="123"]
+```
+
+Options:
+- `form_id`: Fluent Forms form ID (optional, uses settings if not provided)
+- `title`: Custom title for the form
+
+### API Endpoints
+
+#### Check Balance
+```http
+POST /wp-json/gift-certificates/v1/balance
+Content-Type: application/json
+X-WP-Nonce: {nonce}
+
+{
+    "code": "GC12345678"
+}
+```
+
+#### Get Balance (GET)
+```http
+GET /wp-json/gift-certificates/v1/balance/GC12345678
+```
+
+### JavaScript Integration
+
+```javascript
+// Check balance using JavaScript
+fetch('/wp-json/gift-certificates/v1/balance', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'X-WP-Nonce': wpApiSettings.nonce
+    },
+    body: JSON.stringify({ code: 'GC12345678' })
+})
+.then(response => response.json())
+.then(data => {
+    console.log('Balance:', data.balance);
+});
+```
+
+## Admin Interface
+
+### Dashboard
+- Overview statistics
+- Recent gift certificates
+- Pending deliveries
+- Quick actions
+
+### All Certificates
+- List all gift certificates
+- Filter by status
+- View transaction history
+- Manage certificates
+
+### Settings
+- Form configuration
+- Field mapping
+- Email settings
+- API configuration
+
+### How to Use
+- Complete setup instructions
+- Troubleshooting guide
+- API documentation
+
+## Security Features
+
+- **Nonce Verification**: All AJAX requests use WordPress nonces
+- **Input Sanitization**: All user inputs are properly sanitized
+- **Capability Checks**: Admin functions require proper permissions
+- **SQL Prepared Statements**: Database queries use prepared statements
+- **XSS Protection**: Output is properly escaped
+- **CSRF Protection**: Form submissions include security tokens
+
+## Performance Optimizations
+
+- **Database Indexing**: Optimized database queries with proper indexes
+- **Caching**: Efficient data retrieval and caching strategies
+- **Minimal Hooks**: Only essential WordPress hooks are used
+- **Lazy Loading**: Components are loaded only when needed
+- **Asset Optimization**: CSS and JS files are minified and optimized
+
+## Troubleshooting
+
+### Common Issues
+
+**Gift certificates not being created:**
+- Check form ID in settings
+- Verify field mapping
+- Check WordPress error logs
+
+**Coupons not working:**
+- Ensure Fluent Forms Pro is active
+- Verify coupon functionality is enabled
+- Check coupon code format (GCXXXXXXXX)
+
+**Emails not sending:**
+- Check WordPress email configuration
+- Verify email template settings
+- Test email functionality
+
+### Debug Mode
+
+Enable WordPress debug mode to see detailed error messages:
+
+```php
+// In wp-config.php
+define('WP_DEBUG', true);
+define('WP_DEBUG_LOG', true);
+```
+
+## Support
+
+For support and documentation:
+- Check the WordPress error logs
+- Ensure all required plugins are updated
+- Test with a default WordPress theme
+- Review the troubleshooting section in the admin interface
+
+## Changelog
+
+### Version 1.0.0
+- Initial release
+- Webhook integration with Fluent Forms
+- Coupon management system
+- Balance tracking and API
+- Admin interface
+- Email templates
+- Shortcodes
+
+## License
+
+This plugin is licensed under the GPL v2 or later.
+
+## Contributing
+
+Contributions are welcome! Please ensure your code follows WordPress coding standards and includes proper documentation. 
