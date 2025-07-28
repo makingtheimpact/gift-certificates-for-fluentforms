@@ -3,6 +3,11 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+// Load plugin functions if not already loaded
+if (!function_exists('is_plugin_active')) {
+    require_once ABSPATH . 'wp-admin/includes/plugin.php';
+}
+
 // Handle form submission
 if (isset($_POST['submit']) && wp_verify_nonce($_POST['gift_certificates_ff_nonce'], 'gift_certificates_ff_settings')) {
     $input = $_POST['gift_certificates_ff_settings'];
@@ -44,15 +49,37 @@ $settings = get_option('gift_certificates_ff_settings', array());
                     <select name="gift_certificates_ff_settings[gift_certificate_form_id]">
                         <option value=""><?php _e('Select a form', 'gift-certificates-fluentforms'); ?></option>
                         <?php
-                        if (class_exists('FluentForm\Framework\Foundation\Bootstrap') && function_exists('wpFluent')) {
-                            $forms = wpFluent()->table('fluentform_forms')->select(array('id', 'title'))->get();
-                            if (!empty($forms)) {
-                                foreach ($forms as $form) {
-                                    $selected = selected($settings['gift_certificate_form_id'] ?? '', $form->id, false);
-                                    echo '<option value="' . esc_attr($form->id) . '" ' . $selected . '>' . esc_html($form->title) . '</option>';
+                        // More flexible Fluent Forms detection
+                        $fluent_forms_active = false;
+                        $wp_fluent_available = false;
+                        
+                        // Check multiple ways Fluent Forms might be available
+                        if (class_exists('FluentForm\Framework\Foundation\Bootstrap')) {
+                            $fluent_forms_active = true;
+                        } elseif (class_exists('FluentFormPro\Framework\Foundation\Bootstrap')) {
+                            $fluent_forms_active = true;
+                        } elseif (function_exists('wpFluent')) {
+                            $fluent_forms_active = true;
+                            $wp_fluent_available = true;
+                        } elseif (is_plugin_active('fluentform/fluentform.php')) {
+                            $fluent_forms_active = true;
+                        } elseif (is_plugin_active('fluentformpro/fluentformpro.php')) {
+                            $fluent_forms_active = true;
+                        }
+                        
+                        if ($fluent_forms_active && function_exists('wpFluent')) {
+                            try {
+                                $forms = wpFluent()->table('fluentform_forms')->select(array('id', 'title'))->get();
+                                if (!empty($forms)) {
+                                    foreach ($forms as $form) {
+                                        $selected = selected($settings['gift_certificate_form_id'] ?? '', $form->id, false);
+                                        echo '<option value="' . esc_attr($form->id) . '" ' . $selected . '>' . esc_html($form->title) . '</option>';
+                                    }
+                                } else {
+                                    echo '<option value="" disabled>' . __('No forms found', 'gift-certificates-fluentforms') . '</option>';
                                 }
-                            } else {
-                                echo '<option value="" disabled>' . __('No forms found', 'gift-certificates-fluentforms') . '</option>';
+                            } catch (Exception $e) {
+                                echo '<option value="" disabled>' . __('Error loading forms: ' . esc_html($e->getMessage()), 'gift-certificates-fluentforms') . '</option>';
                             }
                         } else {
                             echo '<option value="" disabled>' . __('Fluent Forms not found or not active', 'gift-certificates-fluentforms') . '</option>';
@@ -62,8 +89,11 @@ $settings = get_option('gift_certificates_ff_settings', array());
                     <p class="description"><?php _e('Select the Fluent Forms form that will be used for gift certificate purchases.', 'gift-certificates-fluentforms'); ?></p>
                     <?php if (defined('WP_DEBUG') && WP_DEBUG): ?>
                         <p class="description" style="color: #666;">
-                            Debug: FluentForm class exists: <?php echo class_exists('FluentForm\Framework\Foundation\Bootstrap') ? 'Yes' : 'No'; ?>, 
-                            wpFluent function exists: <?php echo function_exists('wpFluent') ? 'Yes' : 'No'; ?>
+                            Debug: Fluent Forms active: <?php echo $fluent_forms_active ? 'Yes' : 'No'; ?>, 
+                            wpFluent function: <?php echo function_exists('wpFluent') ? 'Yes' : 'No'; ?><br>
+                            Classes found: 
+                            FluentForm\Framework\Foundation\Bootstrap: <?php echo class_exists('FluentForm\Framework\Foundation\Bootstrap') ? 'Yes' : 'No'; ?>,
+                            FluentFormPro\Framework\Foundation\Bootstrap: <?php echo class_exists('FluentFormPro\Framework\Foundation\Bootstrap') ? 'Yes' : 'No'; ?>
                         </p>
                     <?php endif; ?>
                 </td>

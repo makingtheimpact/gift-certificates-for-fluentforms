@@ -1,0 +1,168 @@
+/**
+ * Gift Certificates for Fluent Forms - Admin Styles
+ */
+
+.gift-certificate-debug-section {
+    margin-top: 30px;
+    padding: 20px;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.gift-certificate-debug-section h3 {
+    margin-top: 0;
+    color: #23282d;
+}
+
+.gift-certificate-settings-help {
+    margin-top: 30px;
+    padding: 20px;
+    background: #fff;
+    border-left: 4px solid #0073aa;
+}
+
+.gift-certificate-settings-help h3 {
+    margin-top: 0;
+    color: #23282d;
+}
+
+.gift-certificate-settings-help ul {
+    margin-left: 20px;
+}
+
+.gift-certificate-settings-help code {
+    background: #f1f1f1;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: monospace;
+}
+
+#webhook-test-result,
+#form-fields-debug,
+#test-email-result {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 4px;
+    display: none;
+}
+
+#webhook-test-result.success,
+#form-fields-debug.success,
+#test-email-result.success {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+    display: block;
+}
+
+#webhook-test-result.error,
+#form-fields-debug.error,
+#test-email-result.error {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+    display: block;
+}
+
+.gift-certificate-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.gift-certificate-stat-card {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 20px;
+    text-align: center;
+}
+
+.gift-certificate-stat-number {
+    font-size: 2em;
+    font-weight: bold;
+    color: #0073aa;
+    margin-bottom: 10px;
+}
+
+.gift-certificate-stat-label {
+    color: #666;
+    font-size: 0.9em;
+}
+
+.gift-certificate-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+}
+
+.gift-certificate-table th,
+.gift-certificate-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.gift-certificate-table th {
+    background: #f9f9f9;
+    font-weight: bold;
+}
+
+.gift-certificate-table tr:hover {
+    background: #f5f5f5;
+}
+
+.gift-certificate-status {
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+.gift-certificate-status.active {
+    background: #d4edda;
+    color: #155724;
+}
+
+.gift-certificate-status.expired {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.gift-certificate-status.pending_delivery {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.gift-certificate-status.delivered {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.gift-certificate-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.gift-certificate-actions .button {
+    padding: 4px 8px;
+    font-size: 0.8em;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .gift-certificate-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .gift-certificate-table {
+        font-size: 0.9em;
+    }
+    
+    .gift-certificate-table th,
+    .gift-certificate-table td {
+        padding: 8px;
+    }
+} 
