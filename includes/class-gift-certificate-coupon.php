@@ -134,8 +134,11 @@ class GiftCertificateCoupon {
     
     private function is_gift_certificate_coupon($coupon) {
         // Check if coupon has gift certificate metadata
-        if (isset($coupon->meta['is_gift_certificate']) && $coupon->meta['is_gift_certificate']) {
-            return true;
+        if (isset($coupon->meta)) {
+            $meta = is_string($coupon->meta) ? json_decode($coupon->meta, true) : $coupon->meta;
+            if (isset($meta['is_gift_certificate']) && $meta['is_gift_certificate']) {
+                return true;
+            }
         }
         
         // Check if coupon code matches gift certificate pattern
@@ -166,23 +169,28 @@ class GiftCertificateCoupon {
     }
     
     private function deactivate_fluent_forms_coupon($coupon_code) {
-        if (!class_exists('FluentFormPro\Classes\Coupon\CouponService')) {
+        // Check if coupon tables exist
+        if (!$this->fluent_forms_coupon_tables_exist()) {
+            error_log("Gift Certificate: Fluent Forms coupon tables do not exist - cannot deactivate coupon");
             return false;
         }
         
         try {
-            $coupon_service = new FluentFormPro\Classes\Coupon\CouponService();
-            
-            // Get coupon by code
-            $coupon = wpFluent()->table('fluentform_coupons')
+            // Update coupon status directly in database
+            $result = wpFluent()->table('fluentform_coupons')
                 ->where('code', $coupon_code)
-                ->first();
-                
-            if ($coupon) {
-                $coupon_service->update($coupon->id, array('status' => 'inactive'));
-            }
+                ->update(array(
+                    'status' => 'inactive',
+                    'updated_at' => current_time('mysql')
+                ));
             
-            return true;
+            if ($result) {
+                error_log("Gift Certificate: Fluent Forms coupon deactivated successfully - Code: {$coupon_code}");
+                return true;
+            } else {
+                error_log("Gift Certificate: Failed to deactivate Fluent Forms coupon - Code: {$coupon_code}");
+                return false;
+            }
             
         } catch (Exception $e) {
             error_log("Failed to deactivate Fluent Forms coupon: " . $e->getMessage());
@@ -191,29 +199,56 @@ class GiftCertificateCoupon {
     }
     
     private function update_fluent_forms_coupon_amount($coupon_code, $new_amount) {
-        if (!class_exists('FluentFormPro\Classes\Coupon\CouponService')) {
+        // Check if coupon tables exist
+        if (!$this->fluent_forms_coupon_tables_exist()) {
+            error_log("Gift Certificate: Fluent Forms coupon tables do not exist - cannot update coupon amount");
             return false;
         }
         
         try {
-            $coupon_service = new FluentFormPro\Classes\Coupon\CouponService();
-            
-            // Get coupon by code
-            $coupon = wpFluent()->table('fluentform_coupons')
+            // Update coupon amount directly in database
+            $result = wpFluent()->table('fluentform_coupons')
                 ->where('code', $coupon_code)
-                ->first();
-                
-            if ($coupon) {
-                $coupon_service->update($coupon->id, array(
+                ->update(array(
                     'amount' => $new_amount,
-                    'maximum_amount' => $new_amount
+                    'maximum_amount' => $new_amount,
+                    'updated_at' => current_time('mysql')
                 ));
-            }
             
-            return true;
+            if ($result) {
+                error_log("Gift Certificate: Fluent Forms coupon amount updated successfully - Code: {$coupon_code}, New Amount: {$new_amount}");
+                return true;
+            } else {
+                error_log("Gift Certificate: Failed to update Fluent Forms coupon amount - Code: {$coupon_code}");
+                return false;
+            }
             
         } catch (Exception $e) {
             error_log("Failed to update Fluent Forms coupon amount: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    private function fluent_forms_coupon_tables_exist() {
+        global $wpdb;
+        
+        try {
+            // Check if the main coupons table exists
+            $coupons_table = $wpdb->prefix . 'fluentform_coupons';
+            $table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$coupons_table}'") === $coupons_table;
+            
+            if (!$table_exists) {
+                return false;
+            }
+            
+            // Check if the failed messages table exists
+            $failed_messages_table = $wpdb->prefix . 'fluentform_coupon_failed_messages';
+            $failed_table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$failed_messages_table}'") === $failed_messages_table;
+            
+            return $failed_table_exists;
+            
+        } catch (Exception $e) {
+            error_log("Gift Certificate: Error checking Fluent Forms coupon tables: " . $e->getMessage());
             return false;
         }
     }

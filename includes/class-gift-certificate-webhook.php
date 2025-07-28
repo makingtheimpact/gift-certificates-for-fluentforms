@@ -207,48 +207,112 @@ class GiftCertificateWebhook {
             return false;
         }
         
-        // Check if Fluent Forms Pro coupon functionality is available
-        if (!class_exists('FluentFormPro\Classes\Coupon\CouponService')) {
-            error_log("Gift Certificate Webhook: FluentFormPro\Classes\Coupon\CouponService class not found - Fluent Forms Pro coupon addon may not be installed");
+        // Check if coupon tables exist
+        if (!$this->fluent_forms_coupon_tables_exist()) {
+            error_log("Gift Certificate Webhook: Fluent Forms coupon tables do not exist - coupon module may not be installed");
             return false;
         }
         
         try {
-            $coupon_service = new FluentFormPro\Classes\Coupon\CouponService();
-            
+            // Use Fluent Forms database directly to create coupon
             $coupon_data = array(
                 'title' => "Gift Certificate - {$coupon_code}",
                 'code' => $coupon_code,
                 'amount' => $amount,
-                'amount_type' => 'fixed',
+                'amount_type' => 'fixed', // Fixed discount amount
                 'status' => 'active',
-                'usage_limit' => 1,
+                'usage_limit' => 1, // Can only be used once
                 'used_count' => 0,
                 'minimum_amount' => 0,
                 'maximum_amount' => $amount,
                 'start_date' => current_time('Y-m-d'),
                 'end_date' => date('Y-m-d', strtotime('+1 year')),
-                'meta' => array(
+                'stackable' => 'no', // Not stackable with other coupons
+                'applicable_forms' => '', // Apply to all forms
+                'coupon_limit' => 0, // No limit per user
+                'success_message' => "{coupon.code} - {coupon.amount}",
+                'failed_message' => "The provided coupon is not valid",
+                'created_at' => current_time('mysql'),
+                'updated_at' => current_time('mysql'),
+                'meta' => json_encode(array(
                     'gift_certificate_id' => $gift_certificate_id,
                     'is_gift_certificate' => true
-                )
+                ))
             );
             
             error_log("Gift Certificate Webhook: Coupon data prepared: " . print_r($coupon_data, true));
             
-            $coupon_id = $coupon_service->create($coupon_data);
+            // Insert coupon directly into Fluent Forms coupons table
+            $coupon_id = wpFluent()->table('fluentform_coupons')->insert($coupon_data);
             
             if ($coupon_id) {
                 error_log("Gift Certificate Webhook: Fluent Forms coupon created successfully - ID: {$coupon_id}");
+                
+                // Also insert the failed messages for different scenarios
+                $failed_messages = array(
+                    'inactive' => "The provided coupon is not valid",
+                    'minimum_amount' => "Minimum purchase amount not met",
+                    'stackable' => "This coupon cannot be used with other coupons",
+                    'limit_crossed' => "Coupon usage limit exceeded",
+                    'date_expired' => "Coupon has expired",
+                    'allowed_form' => "Coupon not valid for this form"
+                );
+                
+                foreach ($failed_messages as $type => $message) {
+                    $failed_message_id = wpFluent()->table('fluentform_coupon_failed_messages')->insert(array(
+                        'coupon_id' => $coupon_id,
+                        'failed_type' => $type,
+                        'message' => $message,
+                        'created_at' => current_time('mysql')
+                    ));
+                    
+                    if ($failed_message_id) {
+                        error_log("Gift Certificate Webhook: Failed message created for type '{$type}' - ID: {$failed_message_id}");
+                    } else {
+                        error_log("Gift Certificate Webhook: Failed to create failed message for type '{$type}'");
+                    }
+                }
+                
+                error_log("Gift Certificate Webhook: Coupon creation completed successfully - Code: {$coupon_code}, ID: {$coupon_id}");
                 return true;
             } else {
-                error_log("Gift Certificate Webhook: Fluent Forms coupon creation returned false/empty");
+                error_log("Gift Certificate Webhook: Fluent Forms coupon creation failed - no ID returned");
                 return false;
             }
             
         } catch (Exception $e) {
             error_log("Gift Certificate Webhook: Exception creating Fluent Forms coupon: " . $e->getMessage());
             error_log("Gift Certificate Webhook: Exception trace: " . $e->getTraceAsString());
+            return false;
+        }
+    }
+    
+    private function fluent_forms_coupon_tables_exist() {
+        global $wpdb;
+        
+        try {
+            // Check if the main coupons table exists
+            $coupons_table = $wpdb->prefix . 'fluentform_coupons';
+            $table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$coupons_table}'") === $coupons_table;
+            
+            if (!$table_exists) {
+                error_log("Gift Certificate Webhook: Fluent Forms coupons table does not exist");
+                return false;
+            }
+            
+            // Check if the failed messages table exists
+            $failed_messages_table = $wpdb->prefix . 'fluentform_coupon_failed_messages';
+            $failed_table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$failed_messages_table}'") === $failed_messages_table;
+            
+            if (!$failed_table_exists) {
+                error_log("Gift Certificate Webhook: Fluent Forms coupon failed messages table does not exist");
+                return false;
+            }
+            
+            return true;
+            
+        } catch (Exception $e) {
+            error_log("Gift Certificate Webhook: Error checking Fluent Forms coupon tables: " . $e->getMessage());
             return false;
         }
     }
