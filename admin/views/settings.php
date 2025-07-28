@@ -169,6 +169,16 @@ $settings = get_option('gift_certificates_ff_settings', array());
                     <div id="form-fields-debug"></div>
                 </td>
             </tr>
+            
+            <tr>
+                <th scope="row"><?php _e('Test Email', 'gift-certificates-fluentforms'); ?></th>
+                <td>
+                    <input type="email" id="test-email-address" placeholder="Enter email address to test" style="width: 300px;">
+                    <button type="button" id="test-email" class="button"><?php _e('Send Test Email', 'gift-certificates-fluentforms'); ?></button>
+                    <p class="description"><?php _e('Test if email sending is working with your current configuration.', 'gift-certificates-fluentforms'); ?></p>
+                    <div id="test-email-result"></div>
+                </td>
+            </tr>
         </table>
     </div>
     
@@ -243,5 +253,9 @@ $settings = get_option('gift_certificates_ff_settings', array());
     white-space: pre-wrap;
     font-family: monospace;
     font-size: 12px;
+}
+
+#test-email-address {
+    margin-right: 10px;
 }
 </style> 

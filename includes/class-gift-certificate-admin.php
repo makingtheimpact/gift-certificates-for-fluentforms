@@ -264,6 +264,43 @@ class GiftCertificateAdmin {
                             }
                         });
                     });
+                    
+                    $("#test-email").on("click", function() {
+                        var button = $(this);
+                        var resultDiv = $("#test-email-result");
+                        var emailAddress = $("#test-email-address").val();
+                        
+                        if (!emailAddress) {
+                            resultDiv.html("<p style=\"color: red;\">Please enter an email address.</p>");
+                            return;
+                        }
+                        
+                        button.prop("disabled", true).text("Sending...");
+                        resultDiv.html("<p>Sending test email...</p>");
+                        
+                        $.ajax({
+                            url: giftCertificateAdmin.ajaxUrl,
+                            method: "POST",
+                            data: {
+                                action: "test_gift_certificate_email",
+                                email: emailAddress,
+                                nonce: giftCertificateAdmin.nonce
+                            },
+                            success: function(response) {
+                                if (response.success) {
+                                    resultDiv.html("<p style=\"color: green;\">✓ " + response.data + "</p>");
+                                } else {
+                                    resultDiv.html("<p style=\"color: red;\">✗ " + response.data + "</p>");
+                                }
+                            },
+                            error: function() {
+                                resultDiv.html("<p style=\"color: red;\">✗ Error sending test email</p>");
+                            },
+                            complete: function() {
+                                button.prop("disabled", false).text("Send Test Email");
+                            }
+                        });
+                    });
                 });
             ');
         }
@@ -299,6 +336,11 @@ class GiftCertificateAdmin {
             case 'debug_form_fields':
                 $form_id = intval($_POST['form_id']);
                 $this->debug_form_fields($form_id);
+                break;
+                
+            case 'test_gift_certificate_email':
+                $email = sanitize_email($_POST['email']);
+                $this->test_email($email);
                 break;
                 
             default:
@@ -534,5 +576,16 @@ class GiftCertificateAdmin {
         }
         
         wp_send_json_success($output);
+    }
+    
+    private function test_email($email_address) {
+        $email_handler = new GiftCertificateEmail();
+        $result = $email_handler->send_test_email($email_address);
+        
+        if ($result) {
+            wp_send_json_success('Test email sent successfully! Check your email inbox.');
+        } else {
+            wp_send_json_error('Failed to send test email. Check the error logs for details.');
+        }
     }
 } 
