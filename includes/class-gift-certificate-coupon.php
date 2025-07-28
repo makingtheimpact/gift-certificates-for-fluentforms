@@ -133,16 +133,13 @@ class GiftCertificateCoupon {
     }
     
     private function is_gift_certificate_coupon($coupon) {
-        // Check if coupon has gift certificate metadata
-        if (isset($coupon->meta)) {
-            $meta = is_string($coupon->meta) ? json_decode($coupon->meta, true) : $coupon->meta;
-            if (isset($meta['is_gift_certificate']) && $meta['is_gift_certificate']) {
-                return true;
-            }
-        }
-        
         // Check if coupon code matches gift certificate pattern
         if (preg_match('/^GC[A-Z0-9]{8}$/', $coupon->code)) {
+            return true;
+        }
+        
+        // Check if coupon title indicates it's a gift certificate
+        if (isset($coupon->title) && strpos($coupon->title, 'Gift Certificate') !== false) {
             return true;
         }
         
@@ -206,12 +203,29 @@ class GiftCertificateCoupon {
         }
         
         try {
-            // Update coupon amount directly in database
+            // Get current coupon to update settings
+            $coupon = wpFluent()->table('fluentform_coupons')
+                ->where('code', $coupon_code)
+                ->first();
+            
+            if (!$coupon) {
+                error_log("Gift Certificate: Coupon not found for update - Code: {$coupon_code}");
+                return false;
+            }
+            
+            // Update settings to reflect new amount
+            $settings = unserialize($coupon->settings);
+            if (is_array($settings)) {
+                // Update any amount-related settings if needed
+                $settings['success_message'] = '{coupon.code} - {coupon.amount}';
+            }
+            
+            // Update coupon amount and settings
             $result = wpFluent()->table('fluentform_coupons')
                 ->where('code', $coupon_code)
                 ->update(array(
                     'amount' => $new_amount,
-                    'maximum_amount' => $new_amount,
+                    'settings' => serialize($settings),
                     'updated_at' => current_time('mysql')
                 ));
             
@@ -237,15 +251,7 @@ class GiftCertificateCoupon {
             $coupons_table = $wpdb->prefix . 'fluentform_coupons';
             $table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$coupons_table}'") === $coupons_table;
             
-            if (!$table_exists) {
-                return false;
-            }
-            
-            // Check if the failed messages table exists
-            $failed_messages_table = $wpdb->prefix . 'fluentform_coupon_failed_messages';
-            $failed_table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$failed_messages_table}'") === $failed_messages_table;
-            
-            return $failed_table_exists;
+            return $table_exists;
             
         } catch (Exception $e) {
             error_log("Gift Certificate: Error checking Fluent Forms coupon tables: " . $e->getMessage());

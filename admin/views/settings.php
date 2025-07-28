@@ -42,6 +42,25 @@ $settings = get_option('gift_certificates_ff_settings', array());
     <form method="post" action="">
         <?php wp_nonce_field('gift_certificates_ff_settings', 'gift_certificates_ff_nonce'); ?>
         
+        <?php
+        // Check if Fluent Forms Pro coupon module is available
+        global $wpdb;
+        $coupons_table = $wpdb->prefix . 'fluentform_coupons';
+        $coupon_module_available = $wpdb->get_var("SHOW TABLES LIKE '{$coupons_table}'") === $coupons_table;
+        
+        if ($coupon_module_available): ?>
+            <div class="notice notice-success">
+                <p><strong><?php _e('Coupon Module Active', 'gift-certificates-fluentforms'); ?></strong></p>
+                <p><?php _e('Fluent Forms Pro Coupon module is installed and active. Gift certificates will automatically create coupon codes that can be used in your forms.', 'gift-certificates-fluentforms'); ?></p>
+            </div>
+        <?php else: ?>
+            <div class="notice notice-warning">
+                <p><strong><?php _e('Coupon Module Not Found', 'gift-certificates-fluentforms'); ?></strong></p>
+                <p><?php _e('The Fluent Forms Pro Coupon module is not installed. Gift certificates will be created but coupon codes will not be generated.', 'gift-certificates-fluentforms'); ?></p>
+                <p><?php _e('To enable coupon functionality, please install the Fluent Forms Pro Coupon addon from Fluent Forms → Add-ons.', 'gift-certificates-fluentforms'); ?></p>
+            </div>
+        <?php endif; ?>
+        
         <table class="form-table">
             <tr>
                 <th scope="row"><?php _e('Gift Certificate Form ID', 'gift-certificates-fluentforms'); ?></th>

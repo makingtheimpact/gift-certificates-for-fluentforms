@@ -214,66 +214,46 @@ class GiftCertificateWebhook {
         }
         
         try {
-            // Use Fluent Forms database directly to create coupon
+            // Prepare settings array based on the actual table structure
+            $settings = array(
+                'allowed_form_ids' => array(), // Empty array means all forms
+                'coupon_limit' => '0', // No limit per user
+                'success_message' => '{coupon.code} - {coupon.amount}',
+                'failed_message' => array(
+                    'inactive' => 'The provided coupon is not valid',
+                    'min_amount' => 'The provided coupon does not meet the requirements',
+                    'stackable' => 'Sorry, you can not apply this coupon with other coupon code',
+                    'date_expire' => 'The provided coupon is not valid',
+                    'allowed_form' => 'The provided coupon is not valid',
+                    'limit' => 'The provided coupon is not valid'
+                )
+            );
+            
+            // Use the correct table structure based on the actual wp_fluentform_coupons table
             $coupon_data = array(
                 'title' => "Gift Certificate - {$coupon_code}",
                 'code' => $coupon_code,
+                'coupon_type' => 'fixed',
                 'amount' => $amount,
-                'amount_type' => 'fixed', // Fixed discount amount
                 'status' => 'active',
-                'usage_limit' => 1, // Can only be used once
-                'used_count' => 0,
-                'minimum_amount' => 0,
-                'maximum_amount' => $amount,
+                'stackable' => 'no',
+                'settings' => serialize($settings),
+                'created_by' => get_current_user_id() ?: 1,
+                'min_amount' => 0,
+                'max_use' => 1, // Can only be used once
                 'start_date' => current_time('Y-m-d'),
-                'end_date' => date('Y-m-d', strtotime('+1 year')),
-                'stackable' => 'no', // Not stackable with other coupons
-                'applicable_forms' => '', // Apply to all forms
-                'coupon_limit' => 0, // No limit per user
-                'success_message' => "{coupon.code} - {coupon.amount}",
-                'failed_message' => "The provided coupon is not valid",
+                'expire_date' => date('Y-m-d', strtotime('+1 year')),
                 'created_at' => current_time('mysql'),
-                'updated_at' => current_time('mysql'),
-                'meta' => json_encode(array(
-                    'gift_certificate_id' => $gift_certificate_id,
-                    'is_gift_certificate' => true
-                ))
+                'updated_at' => current_time('mysql')
             );
             
             error_log("Gift Certificate Webhook: Coupon data prepared: " . print_r($coupon_data, true));
             
-            // Insert coupon directly into Fluent Forms coupons table
+            // Insert coupon directly into the correct table
             $coupon_id = wpFluent()->table('fluentform_coupons')->insert($coupon_data);
             
             if ($coupon_id) {
-                error_log("Gift Certificate Webhook: Fluent Forms coupon created successfully - ID: {$coupon_id}");
-                
-                // Also insert the failed messages for different scenarios
-                $failed_messages = array(
-                    'inactive' => "The provided coupon is not valid",
-                    'minimum_amount' => "Minimum purchase amount not met",
-                    'stackable' => "This coupon cannot be used with other coupons",
-                    'limit_crossed' => "Coupon usage limit exceeded",
-                    'date_expired' => "Coupon has expired",
-                    'allowed_form' => "Coupon not valid for this form"
-                );
-                
-                foreach ($failed_messages as $type => $message) {
-                    $failed_message_id = wpFluent()->table('fluentform_coupon_failed_messages')->insert(array(
-                        'coupon_id' => $coupon_id,
-                        'failed_type' => $type,
-                        'message' => $message,
-                        'created_at' => current_time('mysql')
-                    ));
-                    
-                    if ($failed_message_id) {
-                        error_log("Gift Certificate Webhook: Failed message created for type '{$type}' - ID: {$failed_message_id}");
-                    } else {
-                        error_log("Gift Certificate Webhook: Failed to create failed message for type '{$type}'");
-                    }
-                }
-                
-                error_log("Gift Certificate Webhook: Coupon creation completed successfully - Code: {$coupon_code}, ID: {$coupon_id}");
+                error_log("Gift Certificate Webhook: Fluent Forms coupon created successfully - ID: {$coupon_id}, Code: {$coupon_code}");
                 return true;
             } else {
                 error_log("Gift Certificate Webhook: Fluent Forms coupon creation failed - no ID returned");
@@ -296,16 +276,7 @@ class GiftCertificateWebhook {
             $table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$coupons_table}'") === $coupons_table;
             
             if (!$table_exists) {
-                error_log("Gift Certificate Webhook: Fluent Forms coupons table does not exist");
-                return false;
-            }
-            
-            // Check if the failed messages table exists
-            $failed_messages_table = $wpdb->prefix . 'fluentform_coupon_failed_messages';
-            $failed_table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$failed_messages_table}'") === $failed_messages_table;
-            
-            if (!$failed_table_exists) {
-                error_log("Gift Certificate Webhook: Fluent Forms coupon failed messages table does not exist");
+                error_log("Gift Certificate Webhook: Fluent Forms coupons table does not exist - coupon module may not be installed");
                 return false;
             }
             

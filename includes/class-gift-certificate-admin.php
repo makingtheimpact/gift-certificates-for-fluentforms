@@ -529,7 +529,7 @@ class GiftCertificateAdmin {
         $sanitized = array();
         
         // Sanitize form ID
-        $sanitized['gift_certificate_form_id'] = intval($input['gift_certificate_form_id']);
+        $sanitized['gift_certificate_form_id'] = intval($input['gift_certificate_form_id'] ?? 0);
         
         // Sanitize field names
         $field_names = array(
@@ -538,18 +538,18 @@ class GiftCertificateAdmin {
         );
         
         foreach ($field_names as $field) {
-            $sanitized[$field] = sanitize_text_field($input[$field]);
+            $sanitized[$field] = sanitize_text_field($input[$field] ?? '');
         }
         
         // Sanitize email settings
-        $sanitized['email_template'] = wp_kses_post($input['email_template']);
-        $sanitized['email_format'] = sanitize_text_field($input['email_format']);
-        $sanitized['email_subject'] = sanitize_text_field($input['email_subject']);
-        $sanitized['from_email'] = sanitize_email($input['from_email']);
-        $sanitized['from_name'] = sanitize_text_field($input['from_name']);
+        $sanitized['email_template'] = wp_kses_post($input['email_template'] ?? '');
+        $sanitized['email_format'] = sanitize_text_field($input['email_format'] ?? 'text');
+        $sanitized['email_subject'] = sanitize_text_field($input['email_subject'] ?? '');
+        $sanitized['from_email'] = sanitize_email($input['from_email'] ?? '');
+        $sanitized['from_name'] = sanitize_text_field($input['from_name'] ?? '');
         
         // Sanitize balance check page
-        $sanitized['balance_check_page_id'] = intval($input['balance_check_page_id']);
+        $sanitized['balance_check_page_id'] = intval($input['balance_check_page_id'] ?? 0);
         
         return $sanitized;
     }
