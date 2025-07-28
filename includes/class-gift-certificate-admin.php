@@ -421,15 +421,20 @@ class GiftCertificateAdmin {
     public function form_id_field() {
         $form_id = $this->settings['gift_certificate_form_id'] ?? '';
         
-        // Get Fluent Forms
-        $forms = wpFluent()->table('fluentform_forms')->select(array('id', 'title'))->get();
-        
         echo '<select name="gift_certificates_ff_settings[gift_certificate_form_id]">';
         echo '<option value="">' . __('Select a form', 'gift-certificates-fluentforms') . '</option>';
         
-        foreach ($forms as $form) {
-            $selected = ($form->id == $form_id) ? 'selected' : '';
-            echo "<option value='{$form->id}' {$selected}>{$form->title}</option>";
+        // Check if Fluent Forms is active and wpFluent function exists
+        if (class_exists('FluentForm\Framework\Foundation\Bootstrap') && function_exists('wpFluent')) {
+            // Get Fluent Forms
+            $forms = wpFluent()->table('fluentform_forms')->select(array('id', 'title'))->get();
+            
+            foreach ($forms as $form) {
+                $selected = ($form->id == $form_id) ? 'selected' : '';
+                echo "<option value='{$form->id}' {$selected}>{$form->title}</option>";
+            }
+        } else {
+            echo '<option value="" disabled>' . __('Fluent Forms not found or not active', 'gift-certificates-fluentforms') . '</option>';
         }
         
         echo '</select>';
@@ -533,7 +538,7 @@ class GiftCertificateAdmin {
             wp_send_json_error('No form ID configured');
         }
         
-        if (!class_exists('wpFluent')) {
+        if (!class_exists('FluentForm\Framework\Foundation\Bootstrap') || !function_exists('wpFluent')) {
             wp_send_json_error('Fluent Forms not active');
         }
         
@@ -552,7 +557,7 @@ class GiftCertificateAdmin {
     }
     
     private function debug_form_fields($form_id) {
-        if (!class_exists('wpFluent')) {
+        if (!class_exists('FluentForm\Framework\Foundation\Bootstrap') || !function_exists('wpFluent')) {
             wp_send_json_error('Fluent Forms not active');
         }
         

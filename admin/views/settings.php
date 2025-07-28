@@ -44,16 +44,28 @@ $settings = get_option('gift_certificates_ff_settings', array());
                     <select name="gift_certificates_ff_settings[gift_certificate_form_id]">
                         <option value=""><?php _e('Select a form', 'gift-certificates-fluentforms'); ?></option>
                         <?php
-                        if (class_exists('wpFluent')) {
+                        if (class_exists('FluentForm\Framework\Foundation\Bootstrap') && function_exists('wpFluent')) {
                             $forms = wpFluent()->table('fluentform_forms')->select(array('id', 'title'))->get();
-                            foreach ($forms as $form) {
-                                $selected = selected($settings['gift_certificate_form_id'] ?? '', $form->id, false);
-                                echo '<option value="' . esc_attr($form->id) . '" ' . $selected . '>' . esc_html($form->title) . '</option>';
+                            if (!empty($forms)) {
+                                foreach ($forms as $form) {
+                                    $selected = selected($settings['gift_certificate_form_id'] ?? '', $form->id, false);
+                                    echo '<option value="' . esc_attr($form->id) . '" ' . $selected . '>' . esc_html($form->title) . '</option>';
+                                }
+                            } else {
+                                echo '<option value="" disabled>' . __('No forms found', 'gift-certificates-fluentforms') . '</option>';
                             }
+                        } else {
+                            echo '<option value="" disabled>' . __('Fluent Forms not found or not active', 'gift-certificates-fluentforms') . '</option>';
                         }
                         ?>
                     </select>
                     <p class="description"><?php _e('Select the Fluent Forms form that will be used for gift certificate purchases.', 'gift-certificates-fluentforms'); ?></p>
+                    <?php if (defined('WP_DEBUG') && WP_DEBUG): ?>
+                        <p class="description" style="color: #666;">
+                            Debug: FluentForm class exists: <?php echo class_exists('FluentForm\Framework\Foundation\Bootstrap') ? 'Yes' : 'No'; ?>, 
+                            wpFluent function exists: <?php echo function_exists('wpFluent') ? 'Yes' : 'No'; ?>
+                        </p>
+                    <?php endif; ?>
                 </td>
             </tr>
             
