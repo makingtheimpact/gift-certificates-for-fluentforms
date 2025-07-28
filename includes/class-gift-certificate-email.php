@@ -142,13 +142,13 @@ class GiftCertificateEmail {
         return "Dear {recipient_name},\n\n" .
                "You have received a gift certificate from {sender_name}!\n\n" .
                "Gift Certificate Details:\n" .
-               "Amount: ${amount}\n" .
+               "Amount: {amount}\n" .
                "Code: {coupon_code}\n\n" .
                "Message from {sender_name}:\n{message}\n\n" .
-               "You can use this gift certificate on our website. The coupon code will be automatically applied during checkout.\n\n" .
-               "To check your gift certificate balance, visit: {balance_check_url}\n\n" .
-               "Thank you!\n" .
-               "{site_name}";
+               "You can use this gift certificate on {site_name} at {site_url}. To redeem, enter the code in the coupon code field at checkout.\n\n" .
+               "You can check your balance at any time at {balance_check_url}.\n\n" .
+               "Thank you!\n\n" .
+               "[end]";
     }
     
     private function convert_to_html($gift_certificate_id, $message) {
@@ -181,7 +181,7 @@ class GiftCertificateEmail {
             
             <div class="gift-details">
                 <h3>Gift Certificate Details:</h3>
-                <p><strong>Amount:</strong> ${amount}</p>
+                <p><strong>Amount:</strong> {amount}</p>
                 <p><strong>Code:</strong> <span class="coupon-code">{coupon_code}</span></p>
             </div>
             

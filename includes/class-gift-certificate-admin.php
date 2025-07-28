@@ -100,6 +100,14 @@ class GiftCertificateAdmin {
             'gift_certificates_ff_general'
         );
         
+        add_settings_field(
+            'balance_check_page_id',
+            __('Balance Check Page', 'gift-certificates-fluentforms'),
+            array($this, 'balance_check_page_field'),
+            'gift_certificates_ff_settings',
+            'gift_certificates_ff_general'
+        );
+        
         add_settings_section(
             'gift_certificates_ff_email',
             __('Email Settings', 'gift-certificates-fluentforms'),
@@ -343,6 +351,27 @@ class GiftCertificateAdmin {
         echo '</select>';
     }
     
+    public function balance_check_page_field() {
+        $page_id = $this->settings['balance_check_page_id'] ?? '';
+        
+        // Get all pages
+        $pages = get_pages(array(
+            'sort_column' => 'post_title',
+            'sort_order' => 'ASC'
+        ));
+        
+        echo '<select name="gift_certificates_ff_settings[balance_check_page_id]">';
+        echo '<option value="">' . __('Select a page...', 'gift-certificates-fluentforms') . '</option>';
+        
+        foreach ($pages as $page) {
+            $selected = selected($page_id, $page->ID, false);
+            echo '<option value="' . esc_attr($page->ID) . '" ' . $selected . '>' . esc_html($page->post_title) . '</option>';
+        }
+        
+        echo '</select>';
+        echo '<p class="description">' . __('Select the page where users can check their gift certificate balance. You can use the shortcode [gift_certificate_balance_check] on this page.', 'gift-certificates-fluentforms') . '</p>';
+    }
+    
     public function sanitize_settings($input) {
         $sanitized = array();
         
@@ -365,6 +394,9 @@ class GiftCertificateAdmin {
         $sanitized['email_subject'] = sanitize_text_field($input['email_subject']);
         $sanitized['from_email'] = sanitize_email($input['from_email']);
         $sanitized['from_name'] = sanitize_text_field($input['from_name']);
+        
+        // Sanitize balance check page
+        $sanitized['balance_check_page_id'] = intval($input['balance_check_page_id']);
         
         return $sanitized;
     }

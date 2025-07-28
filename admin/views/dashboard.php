@@ -11,27 +11,27 @@ if (!defined('ABSPATH')) {
     <div class="gift-certificate-stats">
         <div class="stat-card">
             <h3><?php _e('Total Certificates', 'gift-certificates-fluentforms'); ?></h3>
-            <div class="stat-number"><?php echo number_format($stats['total']); ?></div>
+            <div class="stat-number"><?php echo number_format($stats['total'] ?? 0); ?></div>
         </div>
         
         <div class="stat-card">
             <h3><?php _e('Active Certificates', 'gift-certificates-fluentforms'); ?></h3>
-            <div class="stat-number"><?php echo number_format($stats['active']); ?></div>
+            <div class="stat-number"><?php echo number_format($stats['active'] ?? 0); ?></div>
         </div>
         
         <div class="stat-card">
             <h3><?php _e('Total Value Issued', 'gift-certificates-fluentforms'); ?></h3>
-            <div class="stat-number">$<?php echo number_format($stats['total_value'], 2); ?></div>
+            <div class="stat-number">$<?php echo number_format($stats['total_value'] ?? 0, 2); ?></div>
         </div>
         
         <div class="stat-card">
             <h3><?php _e('Total Value Redeemed', 'gift-certificates-fluentforms'); ?></h3>
-            <div class="stat-number">$<?php echo number_format($stats['total_redeemed'], 2); ?></div>
+            <div class="stat-number">$<?php echo number_format($stats['total_redeemed'] ?? 0, 2); ?></div>
         </div>
         
         <div class="stat-card">
             <h3><?php _e('Pending Deliveries', 'gift-certificates-fluentforms'); ?></h3>
-            <div class="stat-number"><?php echo number_format($stats['pending_delivery']); ?></div>
+            <div class="stat-number"><?php echo number_format($stats['pending_delivery'] ?? 0); ?></div>
         </div>
     </div>
     

@@ -171,10 +171,9 @@
 })(jQuery);
 
 // Shortcode support
-if (typeof window.giftCertificateShortcode !== 'undefined') {
-    jQuery(document).ready(function($) {
-        // Handle shortcode initialization
-        $('.gift-certificate-balance-shortcode').each(function() {
+jQuery(document).ready(function($) {
+    // Handle shortcode initialization
+    $('.gift-certificate-balance-shortcode').each(function() {
             const $container = $(this);
             
             // Create form in shortcode container
@@ -269,5 +268,4 @@ if (typeof window.giftCertificateShortcode !== 'undefined') {
                 this.value = value;
             });
         });
-    });
-} 
+    }); 

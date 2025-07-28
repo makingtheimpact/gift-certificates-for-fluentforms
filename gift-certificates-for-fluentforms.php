@@ -1,10 +1,10 @@
 <?php
 /**
  * Plugin Name: Gift Certificates for Fluent Forms
- * Plugin URI: https://github.com/your-username/gift-certificates-for-fluentforms
+ * Plugin URI: https://github.com/makingtheimpact/gift-certificates-for-fluentforms
  * Description: Extend Fluent Forms Pro to sell and redeem gift certificates with webhook integration, coupon management, and balance tracking.
  * Version: 1.0.0
- * Author: Your Name
+ * Author: Making The Impact LLC
  * License: GPL v2 or later
  * Text Domain: gift-certificates-fluentforms
  * Domain Path: /languages
@@ -64,7 +64,40 @@ class GiftCertificatesForFluentForms {
     }
     
     private function is_fluent_forms_active() {
-        return class_exists('FluentForm\Framework\Foundation\Bootstrap');
+        // Include WordPress plugin functions
+        if (!function_exists('is_plugin_active')) {
+            require_once(ABSPATH . 'wp-admin/includes/plugin.php');
+        }
+        
+        // Check for Fluent Forms Pro class
+        if (class_exists('FluentForm\Framework\Foundation\Bootstrap')) {
+            return true;
+        }
+        
+        // Check for Fluent Forms Pro Add On Pack
+        if (class_exists('FluentFormPro\Framework\Foundation\Bootstrap')) {
+            return true;
+        }
+        
+        // Check if Fluent Forms Pro plugin is active
+        if (is_plugin_active('fluentformpro/fluentformpro.php')) {
+            return true;
+        }
+        
+        // Check if Fluent Forms Pro Add On Pack is active
+        if (is_plugin_active('fluentformpro-addon-pack/fluentformpro-addon-pack.php')) {
+            return true;
+        }
+        
+        // Check for any plugin with "fluentform" in the name
+        $active_plugins = get_option('active_plugins');
+        foreach ($active_plugins as $plugin) {
+            if (strpos($plugin, 'fluentform') !== false) {
+                return true;
+            }
+        }
+        
+        return false;
     }
     
     public function fluent_forms_missing_notice() {
@@ -73,7 +106,7 @@ class GiftCertificatesForFluentForms {
         echo '</p></div>';
     }
     
-    private function load_dependencies() {
+    public function load_dependencies() {
         // Load required files
         require_once GIFT_CERTIFICATES_FF_PLUGIN_DIR . 'includes/class-gift-certificate-database.php';
         require_once GIFT_CERTIFICATES_FF_PLUGIN_DIR . 'includes/class-gift-certificate-admin.php';
@@ -96,6 +129,14 @@ class GiftCertificatesForFluentForms {
     }
     
     public function activate() {
+        // Load dependencies for activation
+        $this->load_dependencies();
+        
+        // Check if database class exists
+        if (!class_exists('GiftCertificateDatabase')) {
+            wp_die('Gift Certificate Database class not found. Please check plugin installation.');
+        }
+        
         // Create database tables
         $database = new GiftCertificateDatabase();
         $database->create_tables();
@@ -133,11 +174,13 @@ class GiftCertificatesForFluentForms {
         return "Dear {recipient_name},\n\n" .
                "You have received a gift certificate from {sender_name}!\n\n" .
                "Gift Certificate Details:\n" .
-               "Amount: ${amount}\n" .
+               "Amount: {amount}\n" .
                "Code: {coupon_code}\n\n" .
                "Message from {sender_name}:\n{message}\n\n" .
-               "You can use this gift certificate on our website. To redeem, enter the code in the coupon code field at checkout.\n\n" .
-               "Thank you!";
+               "You can use this gift certificate on {site_name} at {site_url}. To redeem, enter the code in the coupon code field at checkout.\n\n" .
+               "You can check your balance at any time at {balance_check_url}.\n\n" .
+               "Thank you!\n\n" .
+               "[end]";
     }
 }
 

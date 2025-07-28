@@ -116,9 +116,21 @@ function checkBalance() {
             <p><?php _e('Use this shortcode to display a balance check form on any page:', 'gift-certificates-fluentforms'); ?></p>
             <code>[gift_certificate_balance_check]</code>
             
+            <h4><?php _e('Available Options:', 'gift-certificates-fluentforms'); ?></h4>
+            <ul>
+                <li><code>title</code> - <?php _e('Custom title for the form', 'gift-certificates-fluentforms'); ?></li>
+                <li><code>placeholder</code> - <?php _e('Custom placeholder text', 'gift-certificates-fluentforms'); ?></li>
+                <li><code>button_text</code> - <?php _e('Custom button text', 'gift-certificates-fluentforms'); ?></li>
+                <li><code>show_instructions</code> - <?php _e('Show/hide instructions (true/false)', 'gift-certificates-fluentforms'); ?></li>
+            </ul>
+            
+            <h4><?php _e('Example:', 'gift-certificates-fluentforms'); ?></h4>
+            <code>[gift_certificate_balance_check title="Check Your Balance" button_text="Check Now" show_instructions="false"]</code>
+            
             <h3><?php _e('Gift Certificate Purchase Form', 'gift-certificates-fluentforms'); ?></h3>
             <p><?php _e('Display your Fluent Forms gift certificate form:', 'gift-certificates-fluentforms'); ?></p>
-            <code>[fluentform id="YOUR_FORM_ID"]</code>
+            <code>[gift_certificate_purchase_form form_id="YOUR_FORM_ID"]</code>
+            <p class="description"><?php _e('If no form_id is specified, the form ID from settings will be used.', 'gift-certificates-fluentforms'); ?></p>
         </div>
         
         <div class="help-section">

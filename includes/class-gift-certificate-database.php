@@ -54,13 +54,15 @@ class GiftCertificateDatabase {
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             KEY gift_certificate_id (gift_certificate_id),
-            KEY order_id (order_id),
-            FOREIGN KEY (gift_certificate_id) REFERENCES {$this->gift_certificates_table}(id) ON DELETE CASCADE
+            KEY order_id (order_id)
         ) $charset_collate;";
         
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql_gift_certificates);
         dbDelta($sql_transactions);
+        
+        // Add foreign key constraint after table creation
+        $this->add_foreign_key_constraint();
     }
     
     public function create_gift_certificate($data) {
@@ -156,6 +158,47 @@ class GiftCertificateDatabase {
         );
     }
     
+    public function update_gift_certificate($id, $data) {
+        global $wpdb;
+        
+        // Sanitize data
+        $sanitized_data = array();
+        
+        if (isset($data['status'])) {
+            $sanitized_data['status'] = sanitize_text_field($data['status']);
+        }
+        
+        if (isset($data['current_balance'])) {
+            $sanitized_data['current_balance'] = floatval($data['current_balance']);
+        }
+        
+        if (isset($data['message'])) {
+            $sanitized_data['message'] = sanitize_textarea_field($data['message']);
+        }
+        
+        if (empty($sanitized_data)) {
+            return false;
+        }
+        
+        return $wpdb->update(
+            $this->gift_certificates_table,
+            $sanitized_data,
+            array('id' => $id),
+            array_fill(0, count($sanitized_data), '%s'),
+            array('%d')
+        );
+    }
+    
+    public function delete_gift_certificate($id) {
+        global $wpdb;
+        
+        return $wpdb->delete(
+            $this->gift_certificates_table,
+            array('id' => $id),
+            array('%d')
+        );
+    }
+    
     public function record_transaction($gift_certificate_id, $amount_used, $order_id = null, $form_submission_id = null) {
         global $wpdb;
         
@@ -213,6 +256,31 @@ class GiftCertificateDatabase {
         return $wpdb->get_results($sql);
     }
     
+    public function get_gift_certificates_count($args = array()) {
+        global $wpdb;
+        
+        $where_clause = "WHERE 1=1";
+        $where_values = array();
+        
+        if (!empty($args['status'])) {
+            $where_clause .= " AND status = %s";
+            $where_values[] = $args['status'];
+        }
+        
+        if (!empty($args['recipient_email'])) {
+            $where_clause .= " AND recipient_email = %s";
+            $where_values[] = $args['recipient_email'];
+        }
+        
+        $sql = "SELECT COUNT(*) FROM {$this->gift_certificates_table} {$where_clause}";
+        
+        if (!empty($where_values)) {
+            $sql = $wpdb->prepare($sql, $where_values);
+        }
+        
+        return $wpdb->get_var($sql);
+    }
+    
     public function get_transactions($gift_certificate_id) {
         global $wpdb;
         
@@ -242,20 +310,51 @@ class GiftCertificateDatabase {
         $stats = array();
         
         // Total gift certificates
-        $stats['total'] = $wpdb->get_var("SELECT COUNT(*) FROM {$this->gift_certificates_table}");
+        $stats['total'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$this->gift_certificates_table}");
         
         // Active gift certificates
-        $stats['active'] = $wpdb->get_var("SELECT COUNT(*) FROM {$this->gift_certificates_table} WHERE status = 'active'");
+        $stats['active'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$this->gift_certificates_table} WHERE status = 'active'");
         
         // Total value issued
-        $stats['total_value'] = $wpdb->get_var("SELECT SUM(original_amount) FROM {$this->gift_certificates_table}");
+        $stats['total_value'] = (float) $wpdb->get_var("SELECT SUM(original_amount) FROM {$this->gift_certificates_table}");
         
         // Total value redeemed
-        $stats['total_redeemed'] = $wpdb->get_var("SELECT SUM(amount_used) FROM {$this->transactions_table}");
+        $stats['total_redeemed'] = (float) $wpdb->get_var("SELECT SUM(amount_used) FROM {$this->transactions_table}");
         
         // Pending deliveries
-        $stats['pending_delivery'] = $wpdb->get_var("SELECT COUNT(*) FROM {$this->gift_certificates_table} WHERE status = 'pending_delivery'");
+        $stats['pending_delivery'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$this->gift_certificates_table} WHERE status = 'pending_delivery'");
+        
+        // Ensure we have valid numeric values (not null)
+        $stats['total'] = $stats['total'] ?: 0;
+        $stats['active'] = $stats['active'] ?: 0;
+        $stats['total_value'] = $stats['total_value'] ?: 0.0;
+        $stats['total_redeemed'] = $stats['total_redeemed'] ?: 0.0;
+        $stats['pending_delivery'] = $stats['pending_delivery'] ?: 0;
         
         return $stats;
+    }
+    
+    private function add_foreign_key_constraint() {
+        global $wpdb;
+        
+        // Check if foreign key constraint already exists
+        $constraint_exists = $wpdb->get_var("
+            SELECT COUNT(*) 
+            FROM information_schema.KEY_COLUMN_USAGE 
+            WHERE TABLE_SCHEMA = DATABASE() 
+            AND TABLE_NAME = '{$this->transactions_table}' 
+            AND REFERENCED_TABLE_NAME = '{$this->gift_certificates_table}'
+        ");
+        
+        if (!$constraint_exists) {
+            // Add foreign key constraint
+            $wpdb->query("
+                ALTER TABLE {$this->transactions_table} 
+                ADD CONSTRAINT fk_gift_certificate_transactions 
+                FOREIGN KEY (gift_certificate_id) 
+                REFERENCES {$this->gift_certificates_table}(id) 
+                ON DELETE CASCADE
+            ");
+        }
     }
 } 
