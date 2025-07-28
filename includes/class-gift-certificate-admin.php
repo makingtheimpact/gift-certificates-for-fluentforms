@@ -193,6 +193,80 @@ class GiftCertificateAdmin {
                 'confirmResend' => __('Are you sure you want to resend this gift certificate?', 'gift-certificates-fluentforms')
             )
         ));
+        
+        // Add inline script for debug functionality
+        if (strpos($hook, 'gift-certificates-ff-settings') !== false) {
+            wp_add_inline_script('gift-certificate-admin', '
+                jQuery(document).ready(function($) {
+                    $("#test-webhook").on("click", function() {
+                        var button = $(this);
+                        var resultDiv = $("#webhook-test-result");
+                        
+                        button.prop("disabled", true).text("Testing...");
+                        resultDiv.html("<p>Testing webhook connection...</p>");
+                        
+                        $.ajax({
+                            url: giftCertificateAdmin.ajaxUrl,
+                            method: "POST",
+                            data: {
+                                action: "test_gift_certificate_webhook",
+                                nonce: giftCertificateAdmin.nonce
+                            },
+                            success: function(response) {
+                                if (response.success) {
+                                    resultDiv.html("<p style=\"color: green;\">✓ " + response.data + "</p>");
+                                } else {
+                                    resultDiv.html("<p style=\"color: red;\">✗ " + response.data + "</p>");
+                                }
+                            },
+                            error: function() {
+                                resultDiv.html("<p style=\"color: red;\">✗ Error testing webhook</p>");
+                            },
+                            complete: function() {
+                                button.prop("disabled", false).text("Test Webhook Connection");
+                            }
+                        });
+                    });
+                    
+                    $("#debug-form-fields").on("click", function() {
+                        var button = $(this);
+                        var resultDiv = $("#form-fields-debug");
+                        var formId = $("select[name=\"gift_certificates_ff_settings[gift_certificate_form_id]\"]").val();
+                        
+                        if (!formId) {
+                            resultDiv.html("<p style=\"color: red;\">Please select a form first.</p>");
+                            return;
+                        }
+                        
+                        button.prop("disabled", true).text("Loading...");
+                        resultDiv.html("<p>Loading form fields...</p>");
+                        
+                        $.ajax({
+                            url: giftCertificateAdmin.ajaxUrl,
+                            method: "POST",
+                            data: {
+                                action: "debug_form_fields",
+                                form_id: formId,
+                                nonce: giftCertificateAdmin.nonce
+                            },
+                            success: function(response) {
+                                if (response.success) {
+                                    resultDiv.html("<pre>" + response.data + "</pre>");
+                                } else {
+                                    resultDiv.html("<p style=\"color: red;\">✗ " + response.data + "</p>");
+                                }
+                            },
+                            error: function() {
+                                resultDiv.html("<p style=\"color: red;\">✗ Error loading form fields</p>");
+                            },
+                            complete: function() {
+                                button.prop("disabled", false).text("Debug Form Fields");
+                            }
+                        });
+                    });
+                });
+            ');
+        }
     }
     
     public function handle_admin_ajax() {
@@ -216,6 +290,15 @@ class GiftCertificateAdmin {
             case 'update_status':
                 $status = sanitize_text_field($_POST['status']);
                 $this->update_certificate_status($certificate_id, $status);
+                break;
+                
+            case 'test_gift_certificate_webhook':
+                $this->test_webhook();
+                break;
+                
+            case 'debug_form_fields':
+                $form_id = intval($_POST['form_id']);
+                $this->debug_form_fields($form_id);
                 break;
                 
             default:
@@ -399,5 +482,57 @@ class GiftCertificateAdmin {
         $sanitized['balance_check_page_id'] = intval($input['balance_check_page_id']);
         
         return $sanitized;
+    }
+    
+    private function test_webhook() {
+        $settings = get_option('gift_certificates_ff_settings', array());
+        
+        if (empty($settings['gift_certificate_form_id'])) {
+            wp_send_json_error('No form ID configured');
+        }
+        
+        if (!class_exists('wpFluent')) {
+            wp_send_json_error('Fluent Forms not active');
+        }
+        
+        // Check if the form exists
+        $form = wpFluent()->table('fluentform_forms')->where('id', $settings['gift_certificate_form_id'])->first();
+        if (!$form) {
+            wp_send_json_error('Configured form not found');
+        }
+        
+        // Check if webhook hook is properly registered
+        if (!has_action('fluentform_submission_inserted')) {
+            wp_send_json_error('Webhook hook not registered');
+        }
+        
+        wp_send_json_success('Webhook connection is working properly. Form: ' . $form->title);
+    }
+    
+    private function debug_form_fields($form_id) {
+        if (!class_exists('wpFluent')) {
+            wp_send_json_error('Fluent Forms not active');
+        }
+        
+        $form = wpFluent()->table('fluentform_forms')->where('id', $form_id)->first();
+        if (!$form) {
+            wp_send_json_error('Form not found');
+        }
+        
+        $form_fields = json_decode($form->form_fields, true);
+        if (!$form_fields) {
+            wp_send_json_error('No form fields found');
+        }
+        
+        $output = "Form: {$form->title}\n\n";
+        $output .= "Available fields:\n";
+        
+        foreach ($form_fields as $field) {
+            if (isset($field['attributes']['name'])) {
+                $output .= "- {$field['attributes']['name']} ({$field['element']})\n";
+            }
+        }
+        
+        wp_send_json_success($output);
     }
 } 

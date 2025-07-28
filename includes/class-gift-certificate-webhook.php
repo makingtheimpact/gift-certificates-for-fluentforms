@@ -16,16 +16,32 @@ class GiftCertificateWebhook {
         $this->database = new GiftCertificateDatabase();
         $this->settings = get_option('gift_certificates_ff_settings', array());
         
+        // Try multiple hooks to ensure compatibility
+        add_action('fluentform_submission_inserted', array($this, 'handle_form_submission'), 10, 3);
         add_action('fluentform/form_submission_completed', array($this, 'handle_form_submission'), 10, 3);
         add_action('wp_ajax_gift_certificate_webhook', array($this, 'handle_ajax_webhook'));
         add_action('wp_ajax_nopriv_gift_certificate_webhook', array($this, 'handle_ajax_webhook'));
     }
     
     public function handle_form_submission($entry_id, $form_data, $form) {
-        // Check if this is the gift certificate form
-        if ($form->id != $this->settings['gift_certificate_form_id']) {
+        // Prevent duplicate processing
+        static $processed_entries = array();
+        if (in_array($entry_id, $processed_entries)) {
+            error_log("Gift Certificate Webhook: Entry {$entry_id} already processed, skipping");
             return;
         }
+        $processed_entries[] = $entry_id;
+        
+        // Log the submission for debugging
+        error_log("Gift Certificate Webhook: Form submission received - Entry ID: {$entry_id}, Form ID: {$form->id}");
+        
+        // Check if this is the gift certificate form
+        if ($form->id != $this->settings['gift_certificate_form_id']) {
+            error_log("Gift Certificate Webhook: Form ID mismatch - Expected: {$this->settings['gift_certificate_form_id']}, Got: {$form->id}");
+            return;
+        }
+        
+        error_log("Gift Certificate Webhook: Processing gift certificate submission - Entry ID: {$entry_id}");
         
         // Process the submission
         $this->process_gift_certificate_submission($entry_id, $form_data, $form);
@@ -59,6 +75,9 @@ class GiftCertificateWebhook {
     
     private function process_gift_certificate_submission($entry_id, $form_data, $form) {
         try {
+            error_log("Gift Certificate Webhook: Starting processing - Entry ID: {$entry_id}");
+            error_log("Gift Certificate Webhook: Form data: " . print_r($form_data, true));
+            
             // Extract form data using configured field names
             $amount = $this->get_field_value($form_data, $this->settings['amount_field_name']);
             $recipient_email = $this->get_field_value($form_data, $this->settings['recipient_email_field_name']);
@@ -67,9 +86,11 @@ class GiftCertificateWebhook {
             $message = $this->get_field_value($form_data, $this->settings['message_field_name']);
             $delivery_date = $this->get_field_value($form_data, $this->settings['delivery_date_field_name']);
             
+            error_log("Gift Certificate Webhook: Extracted data - Amount: {$amount}, Email: {$recipient_email}, Name: {$recipient_name}");
+            
             // Validate required fields
             if (empty($amount) || empty($recipient_email) || empty($recipient_name)) {
-                throw new Exception('Required fields are missing');
+                throw new Exception('Required fields are missing - Amount: ' . ($amount ?: 'empty') . ', Email: ' . ($recipient_email ?: 'empty') . ', Name: ' . ($recipient_name ?: 'empty'));
             }
             
             // Validate amount
@@ -115,13 +136,15 @@ class GiftCertificateWebhook {
             }
             
             // Send gift certificate email
-            $this->send_gift_certificate_email($gift_certificate_id, $entry_id);
+            $email_sent = $this->send_gift_certificate_email($gift_certificate_id, $entry_id);
+            error_log("Gift Certificate Webhook: Email sent: " . ($email_sent ? 'Yes' : 'No'));
             
             // Log success
             error_log("Gift certificate created successfully: ID {$gift_certificate_id}, Coupon: {$coupon_code}");
             
         } catch (Exception $e) {
             error_log("Gift certificate creation failed: " . $e->getMessage());
+            error_log("Gift Certificate Webhook: Exception details - " . $e->getTraceAsString());
             
             // Update entry with error message
             wpFluent()->table('fluentform_submissions')
@@ -129,7 +152,7 @@ class GiftCertificateWebhook {
                 ->update(array(
                     'status' => 'failed',
                     'response' => json_encode(array_merge(
-                        json_decode($entry->response, true),
+                        json_decode($form_data, true) ?: array(),
                         array('gift_certificate_error' => $e->getMessage())
                     ))
                 ));
