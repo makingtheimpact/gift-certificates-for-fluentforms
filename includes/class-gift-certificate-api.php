@@ -232,25 +232,33 @@ class GiftCertificateAPI {
     }
     
     public function enqueue_scripts() {
-        wp_enqueue_script(
-            'gift-certificate-balance-check',
-            GIFT_CERTIFICATES_FF_PLUGIN_URL . 'assets/js/balance-check.js',
-            array('jquery'),
-            GIFT_CERTIFICATES_FF_VERSION,
-            true
-        );
+        // Only enqueue scripts if shortcodes are present on the page
+        global $post;
         
-        wp_enqueue_style(
-            'gift-certificate-balance-check',
-            GIFT_CERTIFICATES_FF_PLUGIN_URL . 'assets/css/balance-check.css',
-            array(),
-            GIFT_CERTIFICATES_FF_VERSION
-        );
-        
-        wp_localize_script('gift-certificate-balance-check', 'giftCertificateAPI', array(
-            'restUrl' => rest_url($this->namespace),
-            'nonce' => wp_create_nonce('wp_rest')
-        ));
+        if (is_a($post, 'WP_Post') && (
+            has_shortcode($post->post_content, 'gift_certificate_balance_check') ||
+            has_shortcode($post->post_content, 'gift_certificate_purchase_form')
+        )) {
+            wp_enqueue_script(
+                'gift-certificate-balance-check',
+                GIFT_CERTIFICATES_FF_PLUGIN_URL . 'assets/js/balance-check.js',
+                array('jquery'),
+                GIFT_CERTIFICATES_FF_VERSION,
+                true
+            );
+            
+            wp_enqueue_style(
+                'gift-certificate-balance-check',
+                GIFT_CERTIFICATES_FF_PLUGIN_URL . 'assets/css/balance-check.css',
+                array(),
+                GIFT_CERTIFICATES_FF_VERSION
+            );
+            
+            wp_localize_script('gift-certificate-balance-check', 'giftCertificateAPI', array(
+                'restUrl' => rest_url($this->namespace),
+                'nonce' => wp_create_nonce('wp_rest')
+            ));
+        }
     }
     
     // AJAX handlers for backward compatibility

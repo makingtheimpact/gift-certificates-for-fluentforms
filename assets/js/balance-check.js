@@ -7,16 +7,15 @@
     
     // Initialize balance check functionality
     function initBalanceCheck() {
-        // Create balance check form if it doesn't exist
-        if ($('#gift-certificate-balance-check').length === 0) {
-            createBalanceCheckForm();
+        // Only create form if shortcode is present or explicitly requested
+        if ($('.gift-certificate-balance-shortcode').length > 0) {
+            // Shortcode will handle form creation
+            bindEvents();
         }
-        
-        // Bind events
-        bindEvents();
+        // Remove automatic form creation - only create when explicitly needed
     }
     
-    // Create balance check form
+    // Create balance check form (only called when explicitly needed)
     function createBalanceCheckForm() {
         const formHtml = `
             <div id="gift-certificate-balance-check" class="gift-certificate-balance-form">

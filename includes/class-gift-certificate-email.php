@@ -104,12 +104,20 @@ class GiftCertificateEmail {
     }
     
     private function get_email_subject($gift_certificate) {
-        $subject = $this->settings['email_subject'] ?? 'You have received a gift certificate!';
+        $subject = $this->settings['email_subject'] ?? '';
+        
+        if (empty($subject)) {
+            $subject = sprintf(
+                'Gift Certificate from %s - $%s',
+                $gift_certificate->sender_name,
+                number_format($gift_certificate->original_amount, 2)
+            );
+        }
         
         // Replace placeholders
         $subject = str_replace(
-            array('{recipient_name}', '{sender_name}', '{amount}'),
-            array($gift_certificate->recipient_name, $gift_certificate->sender_name, $gift_certificate->original_amount),
+            array('{recipient_name}', '{sender_name}', '{amount}', '{site_name}'),
+            array($gift_certificate->recipient_name, $gift_certificate->sender_name, '$' . number_format($gift_certificate->original_amount, 2), get_bloginfo('name')),
             $subject
         );
         
@@ -254,9 +262,17 @@ class GiftCertificateEmail {
             $headers[] = 'Content-Type: text/plain; charset=UTF-8';
         }
         
-        // Set from email and name
+        // Set from email and name with proper defaults
         $from_email = $this->settings['from_email'] ?? get_option('admin_email');
         $from_name = $this->settings['from_name'] ?? get_bloginfo('name');
+        
+        // Ensure we have valid values
+        if (empty($from_email)) {
+            $from_email = get_option('admin_email');
+        }
+        if (empty($from_name)) {
+            $from_name = get_bloginfo('name');
+        }
         
         $headers[] = "From: {$from_name} <{$from_email}>";
         $headers[] = "Reply-To: {$from_email}";

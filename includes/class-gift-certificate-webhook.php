@@ -203,13 +203,13 @@ class GiftCertificateWebhook {
         }
         
         if (!is_plugin_active('fluentformpro/fluentformpro.php') && !is_plugin_active('fluentformpro-addon-pack/fluentformpro-addon-pack.php')) {
-            error_log("Gift Certificate Webhook: Fluent Forms Pro is not active");
+            error_log("Gift Certificate Webhook: Fluent Forms Pro is not active - skipping coupon creation");
             return false;
         }
         
         // Check if Fluent Forms Pro coupon functionality is available
         if (!class_exists('FluentFormPro\Classes\Coupon\CouponService')) {
-            error_log("Gift Certificate Webhook: FluentFormPro\Classes\Coupon\CouponService class not found");
+            error_log("Gift Certificate Webhook: FluentFormPro\Classes\Coupon\CouponService class not found - Fluent Forms Pro coupon addon may not be installed");
             return false;
         }
         
@@ -238,9 +238,13 @@ class GiftCertificateWebhook {
             
             $coupon_id = $coupon_service->create($coupon_data);
             
-            error_log("Gift Certificate Webhook: Coupon creation result - ID: " . ($coupon_id ?: 'false'));
-            
-            return $coupon_id ? true : false;
+            if ($coupon_id) {
+                error_log("Gift Certificate Webhook: Fluent Forms coupon created successfully - ID: {$coupon_id}");
+                return true;
+            } else {
+                error_log("Gift Certificate Webhook: Fluent Forms coupon creation returned false/empty");
+                return false;
+            }
             
         } catch (Exception $e) {
             error_log("Gift Certificate Webhook: Exception creating Fluent Forms coupon: " . $e->getMessage());
