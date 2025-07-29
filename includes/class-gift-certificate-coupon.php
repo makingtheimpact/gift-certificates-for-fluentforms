@@ -166,15 +166,18 @@ class GiftCertificateCoupon {
     }
     
     private function deactivate_fluent_forms_coupon($coupon_code) {
-        // Check if coupon tables exist
-        if (!$this->fluent_forms_coupon_tables_exist()) {
-            error_log("Gift Certificate: Fluent Forms coupon tables do not exist - cannot deactivate coupon");
+        // Get the coupon table name
+        $coupon_table_name = $this->get_coupon_table_name();
+        
+        // Check if coupon table exists
+        if (!$this->table_exists($coupon_table_name)) {
+            error_log("Gift Certificate: Coupon table '{$coupon_table_name}' does not exist - cannot deactivate coupon");
             return false;
         }
         
         try {
             // Update coupon status directly in database
-            $result = wpFluent()->table('fluentform_coupons')
+            $result = wpFluent()->table($coupon_table_name)
                 ->where('code', $coupon_code)
                 ->update(array(
                     'status' => 'inactive',
@@ -196,15 +199,18 @@ class GiftCertificateCoupon {
     }
     
     private function update_fluent_forms_coupon_amount($coupon_code, $new_amount) {
-        // Check if coupon tables exist
-        if (!$this->fluent_forms_coupon_tables_exist()) {
-            error_log("Gift Certificate: Fluent Forms coupon tables do not exist - cannot update coupon amount");
+        // Get the coupon table name
+        $coupon_table_name = $this->get_coupon_table_name();
+        
+        // Check if coupon table exists
+        if (!$this->table_exists($coupon_table_name)) {
+            error_log("Gift Certificate: Coupon table '{$coupon_table_name}' does not exist - cannot update coupon amount");
             return false;
         }
         
         try {
             // Get current coupon to update settings
-            $coupon = wpFluent()->table('fluentform_coupons')
+            $coupon = wpFluent()->table($coupon_table_name)
                 ->where('code', $coupon_code)
                 ->first();
             
@@ -221,7 +227,7 @@ class GiftCertificateCoupon {
             }
             
             // Update coupon amount and settings
-            $result = wpFluent()->table('fluentform_coupons')
+            $result = wpFluent()->table($coupon_table_name)
                 ->where('code', $coupon_code)
                 ->update(array(
                     'amount' => $new_amount,
@@ -243,18 +249,33 @@ class GiftCertificateCoupon {
         }
     }
     
-    private function fluent_forms_coupon_tables_exist() {
+    /**
+     * Get the coupon table name (configurable)
+     */
+    private function get_coupon_table_name() {
+        $settings = get_option('gift_certificates_ff_settings', array());
+        $custom_table_name = $settings['coupon_table_name'] ?? '';
+        
+        if (!empty($custom_table_name)) {
+            return $custom_table_name;
+        }
+        
+        // Default table name
+        global $wpdb;
+        return $wpdb->prefix . 'fluentform_coupons';
+    }
+    
+    /**
+     * Check if a table exists
+     */
+    private function table_exists($table_name) {
         global $wpdb;
         
         try {
-            // Check if the main coupons table exists
-            $coupons_table = $wpdb->prefix . 'fluentform_coupons';
-            $table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$coupons_table}'") === $coupons_table;
-            
+            $table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name;
             return $table_exists;
-            
         } catch (Exception $e) {
-            error_log("Gift Certificate: Error checking Fluent Forms coupon tables: " . $e->getMessage());
+            error_log("Gift Certificate: Error checking table '{$table_name}': " . $e->getMessage());
             return false;
         }
     }

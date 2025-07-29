@@ -551,6 +551,9 @@ class GiftCertificateAdmin {
         // Sanitize balance check page
         $sanitized['balance_check_page_id'] = intval($input['balance_check_page_id'] ?? 0);
         
+        // Sanitize coupon table name
+        $sanitized['coupon_table_name'] = sanitize_text_field($input['coupon_table_name'] ?? '');
+        
         return $sanitized;
     }
     

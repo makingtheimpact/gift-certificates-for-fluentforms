@@ -207,9 +207,13 @@ class GiftCertificateWebhook {
             return false;
         }
         
-        // Check if coupon tables exist
-        if (!$this->fluent_forms_coupon_tables_exist()) {
-            error_log("Gift Certificate Webhook: Fluent Forms coupon tables do not exist - coupon module may not be installed");
+        // Get the coupon table name (configurable)
+        $coupon_table_name = $this->get_coupon_table_name();
+        error_log("Gift Certificate Webhook: Using coupon table: {$coupon_table_name}");
+        
+        // Check if coupon table exists
+        if (!$this->table_exists($coupon_table_name)) {
+            error_log("Gift Certificate Webhook: Coupon table '{$coupon_table_name}' does not exist - coupon module may not be installed");
             return false;
         }
         
@@ -250,7 +254,7 @@ class GiftCertificateWebhook {
             error_log("Gift Certificate Webhook: Coupon data prepared: " . print_r($coupon_data, true));
             
             // Insert coupon directly into the correct table
-            $coupon_id = wpFluent()->table('fluentform_coupons')->insert($coupon_data);
+            $coupon_id = wpFluent()->table($coupon_table_name)->insert($coupon_data);
             
             if ($coupon_id) {
                 error_log("Gift Certificate Webhook: Fluent Forms coupon created successfully - ID: {$coupon_id}, Code: {$coupon_code}");
@@ -267,23 +271,34 @@ class GiftCertificateWebhook {
         }
     }
     
-    private function fluent_forms_coupon_tables_exist() {
+    /**
+     * Get the coupon table name (configurable)
+     */
+    private function get_coupon_table_name() {
+        $settings = get_option('gift_certificates_ff_settings', array());
+        $custom_table_name = $settings['coupon_table_name'] ?? '';
+        
+        if (!empty($custom_table_name)) {
+            return $custom_table_name;
+        }
+        
+        // Default table name
+        global $wpdb;
+        return $wpdb->prefix . 'fluentform_coupons';
+    }
+    
+    /**
+     * Check if a table exists
+     */
+    private function table_exists($table_name) {
         global $wpdb;
         
         try {
-            // Check if the main coupons table exists
-            $coupons_table = $wpdb->prefix . 'fluentform_coupons';
-            $table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$coupons_table}'") === $coupons_table;
-            
-            if (!$table_exists) {
-                error_log("Gift Certificate Webhook: Fluent Forms coupons table does not exist - coupon module may not be installed");
-                return false;
-            }
-            
-            return true;
-            
+            $table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name;
+            error_log("Gift Certificate Webhook: Table '{$table_name}' exists: " . ($table_exists ? 'Yes' : 'No'));
+            return $table_exists;
         } catch (Exception $e) {
-            error_log("Gift Certificate Webhook: Error checking Fluent Forms coupon tables: " . $e->getMessage());
+            error_log("Gift Certificate Webhook: Error checking table '{$table_name}': " . $e->getMessage());
             return false;
         }
     }

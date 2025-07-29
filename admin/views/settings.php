@@ -52,12 +52,14 @@ $settings = get_option('gift_certificates_ff_settings', array());
             <div class="notice notice-success">
                 <p><strong><?php _e('Coupon Module Active', 'gift-certificates-fluentforms'); ?></strong></p>
                 <p><?php _e('Fluent Forms Pro Coupon module is installed and active. Gift certificates will automatically create coupon codes that can be used in your forms.', 'gift-certificates-fluentforms'); ?></p>
+                <p><?php _e('Using table:', 'gift-certificates-fluentforms'); ?> <code><?php echo esc_html($coupons_table); ?></code></p>
             </div>
         <?php else: ?>
             <div class="notice notice-warning">
                 <p><strong><?php _e('Coupon Module Not Found', 'gift-certificates-fluentforms'); ?></strong></p>
                 <p><?php _e('The Fluent Forms Pro Coupon module is not installed. Gift certificates will be created but coupon codes will not be generated.', 'gift-certificates-fluentforms'); ?></p>
                 <p><?php _e('To enable coupon functionality, please install the Fluent Forms Pro Coupon addon from Fluent Forms → Add-ons.', 'gift-certificates-fluentforms'); ?></p>
+                <p><?php _e('Expected table:', 'gift-certificates-fluentforms'); ?> <code><?php echo esc_html($coupons_table); ?></code></p>
             </div>
         <?php endif; ?>
         
@@ -183,6 +185,15 @@ $settings = get_option('gift_certificates_ff_settings', array());
                         ?>
                     </select>
                     <p class="description"><?php _e('Select the page where users can check their gift certificate balance. You can use the shortcode [gift_certificate_balance_check] on this page.', 'gift-certificates-fluentforms'); ?></p>
+                </td>
+            </tr>
+            
+            <tr>
+                <th scope="row"><?php _e('Coupon Table Name', 'gift-certificates-fluentforms'); ?></th>
+                <td>
+                    <input type="text" name="gift_certificates_ff_settings[coupon_table_name]" value="<?php echo esc_attr($settings['coupon_table_name'] ?? ''); ?>" class="regular-text" placeholder="<?php echo esc_attr($wpdb->prefix . 'fluentform_coupons'); ?>">
+                    <p class="description"><?php _e('Leave empty to use the default table name. Only change this if your Fluent Forms coupon table has a different name.', 'gift-certificates-fluentforms'); ?></p>
+                    <p class="description"><?php _e('Current default:', 'gift-certificates-fluentforms'); ?> <code><?php echo esc_html($wpdb->prefix . 'fluentform_coupons'); ?></code></p>
                 </td>
             </tr>
             
