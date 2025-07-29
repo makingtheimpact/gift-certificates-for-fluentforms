@@ -118,6 +118,9 @@ class GiftCertificatesForFluentForms {
     }
     
     private function init_components() {
+        // Migrate any existing integer form IDs to strings
+        $this->migrate_form_ids_to_strings();
+        
         // Initialize components
         new GiftCertificateDatabase();
         new GiftCertificateAdmin();
@@ -126,6 +129,35 @@ class GiftCertificatesForFluentForms {
         new GiftCertificateAPI();
         new GiftCertificateEmail();
         new GiftCertificateShortcodes();
+    }
+    
+    /**
+     * Migrate any existing integer form IDs to strings for compatibility with Fluent Forms
+     */
+    private function migrate_form_ids_to_strings() {
+        $settings = get_option('gift_certificates_ff_settings', array());
+        
+        if (isset($settings['allowed_form_ids']) && is_array($settings['allowed_form_ids'])) {
+            $migrated = false;
+            $new_allowed_form_ids = array();
+            
+            foreach ($settings['allowed_form_ids'] as $form_id) {
+                // If the form ID is an integer, convert it to string
+                if (is_int($form_id)) {
+                    $new_allowed_form_ids[] = strval($form_id);
+                    $migrated = true;
+                } else {
+                    $new_allowed_form_ids[] = $form_id;
+                }
+            }
+            
+            // Update settings if migration was needed
+            if ($migrated) {
+                $settings['allowed_form_ids'] = $new_allowed_form_ids;
+                update_option('gift_certificates_ff_settings', $settings);
+                error_log('Gift Certificates: Migrated form IDs from integers to strings');
+            }
+        }
     }
     
     public function activate() {

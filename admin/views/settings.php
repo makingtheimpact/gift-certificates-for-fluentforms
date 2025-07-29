@@ -31,7 +31,7 @@ if (isset($_POST['submit']) && wp_verify_nonce($_POST['gift_certificates_ff_nonc
         foreach ($input['allowed_form_ids'] as $form_id) {
             $form_id = intval($form_id);
             if ($form_id > 0) {
-                $sanitized['allowed_form_ids'][] = $form_id;
+                $sanitized['allowed_form_ids'][] = strval($form_id);
             }
         }
     }
@@ -211,7 +211,7 @@ $settings = get_option('gift_certificates_ff_settings', array());
                                 
                                 if (!empty($forms)) {
                                     foreach ($forms as $form) {
-                                        $selected = in_array($form->id, $selected_forms) ? 'selected' : '';
+                                        $selected = in_array(strval($form->id), $selected_forms) ? 'selected' : '';
                                         echo '<option value="' . esc_attr($form->id) . '" ' . $selected . '>' . esc_html($form->title) . '</option>';
                                     }
                                 } else {

@@ -547,7 +547,7 @@ class GiftCertificateAdmin {
             foreach ($input['allowed_form_ids'] as $form_id) {
                 $form_id = intval($form_id);
                 if ($form_id > 0) {
-                    $sanitized['allowed_form_ids'][] = $form_id;
+                    $sanitized['allowed_form_ids'][] = strval($form_id);
                 }
             }
         }

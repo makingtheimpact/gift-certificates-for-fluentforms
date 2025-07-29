@@ -206,8 +206,11 @@ class GiftCertificateCoupon {
             return true;
         }
         
+        // Convert form_id to string for comparison since allowed_form_ids are stored as strings
+        $form_id_str = strval($form_id);
+        
         // Check if the current form is in the allowed list
-        return in_array($form_id, $allowed_form_ids);
+        return in_array($form_id_str, $allowed_form_ids);
     }
     
     private function deactivate_fluent_forms_coupon($coupon_code) {
