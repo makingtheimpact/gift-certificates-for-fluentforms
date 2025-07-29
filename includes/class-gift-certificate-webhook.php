@@ -279,12 +279,12 @@ class GiftCertificateWebhook {
         $custom_table_name = $settings['coupon_table_name'] ?? '';
         
         if (!empty($custom_table_name)) {
-            return $custom_table_name;
+            // Remove wp_ prefix if present since wpFluent() adds it automatically
+            return str_replace('wp_', '', $custom_table_name);
         }
         
-        // Default table name
-        global $wpdb;
-        return $wpdb->prefix . 'fluentform_coupons';
+        // Default table name (without wp_ prefix since wpFluent adds it)
+        return 'fluentform_coupons';
     }
     
     /**
@@ -294,11 +294,13 @@ class GiftCertificateWebhook {
         global $wpdb;
         
         try {
-            $table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name;
-            error_log("Gift Certificate Webhook: Table '{$table_name}' exists: " . ($table_exists ? 'Yes' : 'No'));
+            // For checking existence, we need the full table name with prefix
+            $full_table_name = $wpdb->prefix . $table_name;
+            $table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$full_table_name}'") === $full_table_name;
+            error_log("Gift Certificate Webhook: Table '{$full_table_name}' exists: " . ($table_exists ? 'Yes' : 'No'));
             return $table_exists;
         } catch (Exception $e) {
-            error_log("Gift Certificate Webhook: Error checking table '{$table_name}': " . $e->getMessage());
+            error_log("Gift Certificate Webhook: Error checking table '{$full_table_name}': " . $e->getMessage());
             return false;
         }
     }

@@ -191,9 +191,10 @@ $settings = get_option('gift_certificates_ff_settings', array());
             <tr>
                 <th scope="row"><?php _e('Coupon Table Name', 'gift-certificates-fluentforms'); ?></th>
                 <td>
-                    <input type="text" name="gift_certificates_ff_settings[coupon_table_name]" value="<?php echo esc_attr($settings['coupon_table_name'] ?? ''); ?>" class="regular-text" placeholder="<?php echo esc_attr($wpdb->prefix . 'fluentform_coupons'); ?>">
+                    <input type="text" name="gift_certificates_ff_settings[coupon_table_name]" value="<?php echo esc_attr($settings['coupon_table_name'] ?? ''); ?>" class="regular-text" placeholder="fluentform_coupons">
                     <p class="description"><?php _e('Leave empty to use the default table name. Only change this if your Fluent Forms coupon table has a different name.', 'gift-certificates-fluentforms'); ?></p>
-                    <p class="description"><?php _e('Current default:', 'gift-certificates-fluentforms'); ?> <code><?php echo esc_html($wpdb->prefix . 'fluentform_coupons'); ?></code></p>
+                    <p class="description"><?php _e('Note: Do not include the "wp_" prefix - it will be added automatically.', 'gift-certificates-fluentforms'); ?></p>
+                    <p class="description"><?php _e('Current default:', 'gift-certificates-fluentforms'); ?> <code>fluentform_coupons</code> (becomes <?php echo esc_html($wpdb->prefix . 'fluentform_coupons'); ?>)</p>
                 </td>
             </tr>
             
