@@ -162,6 +162,7 @@ class GiftCertificatesForFluentForms {
             'sender_name_field_name' => 'sender_name',
             'message_field_name' => 'message',
             'delivery_date_field_name' => 'delivery_date',
+            'allowed_form_ids' => array(), // Empty array means all forms are allowed
             'email_template' => $this->get_default_email_template(),
             'api_enabled' => true,
             'balance_check_enabled' => true

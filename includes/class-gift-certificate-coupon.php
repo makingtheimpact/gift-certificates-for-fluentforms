@@ -21,6 +21,9 @@ class GiftCertificateCoupon {
         
         // Hook into coupon usage tracking
         add_action('fluentformpro_coupon_used', array($this, 'track_coupon_usage'), 10, 3);
+        
+        // Hook into form submission completion to track coupon usage
+        add_action('fluentform/form_submission_completed', array($this, 'handle_form_submission_with_coupon'), 10, 3);
     }
     
     public function validate_gift_certificate_coupon($is_valid, $coupon, $form_data) {
@@ -46,6 +49,12 @@ class GiftCertificateCoupon {
             return false;
         }
         
+        // Check if the current form is allowed for redemption
+        $current_form_id = $this->get_current_form_id($form_data);
+        if ($current_form_id && !$this->is_form_allowed_for_redemption($current_form_id)) {
+            return false;
+        }
+        
         // Check if the order amount is within the available balance
         $order_total = $this->calculate_order_total($form_data);
         
@@ -67,17 +76,18 @@ class GiftCertificateCoupon {
         $gift_certificate = $this->database->get_gift_certificate_by_coupon_code($coupon->code);
         
         if ($gift_certificate) {
-            WC()->session->set("gift_certificate_{$submission_id}", array(
+            // Use WordPress session or transient for Fluent Forms
+            set_transient("gift_certificate_{$submission_id}", array(
                 'gift_certificate_id' => $gift_certificate->id,
                 'coupon_code' => $coupon->code,
                 'amount_applied' => $coupon->amount
-            ));
+            ), HOUR_IN_SECONDS);
         }
     }
     
     public function handle_coupon_removed($coupon, $submission_id) {
         // Remove gift certificate info from session
-        WC()->session->__unset("gift_certificate_{$submission_id}");
+        delete_transient("gift_certificate_{$submission_id}");
     }
     
     public function track_coupon_usage($coupon, $form_data, $submission_id) {
@@ -86,8 +96,8 @@ class GiftCertificateCoupon {
             return;
         }
         
-        // Get gift certificate info from session
-        $gift_certificate_info = WC()->session->get("gift_certificate_{$submission_id}");
+        // Get gift certificate info from transient
+        $gift_certificate_info = get_transient("gift_certificate_{$submission_id}");
         
         if (!$gift_certificate_info) {
             return;
@@ -106,6 +116,12 @@ class GiftCertificateCoupon {
         // Calculate new balance
         $new_balance = $gift_certificate->current_balance - $amount_used;
         
+        // Ensure balance doesn't go below zero
+        if ($new_balance < 0) {
+            $new_balance = 0;
+            $amount_used = $gift_certificate->current_balance;
+        }
+        
         // Update gift certificate balance
         $this->database->update_gift_certificate_balance($gift_certificate_id, $new_balance);
         
@@ -117,16 +133,17 @@ class GiftCertificateCoupon {
             $submission_id
         );
         
-        // Update Fluent Forms Pro coupon if balance is zero
+        // Update Fluent Forms Pro coupon
         if ($new_balance <= 0) {
+            // Deactivate coupon if balance is zero
             $this->deactivate_fluent_forms_coupon($coupon->code);
         } else {
             // Update coupon amount to remaining balance
             $this->update_fluent_forms_coupon_amount($coupon->code, $new_balance);
         }
         
-        // Remove from session
-        WC()->session->__unset("gift_certificate_{$submission_id}");
+        // Remove from transient
+        delete_transient("gift_certificate_{$submission_id}");
         
         // Log transaction
         error_log("Gift certificate used: ID {$gift_certificate_id}, Amount: {$amount_used}, New Balance: {$new_balance}");
@@ -163,6 +180,34 @@ class GiftCertificateCoupon {
         }
         
         return $total;
+    }
+    
+    private function get_current_form_id($form_data) {
+        // Try to get form ID from form data
+        if (isset($form_data['form_id'])) {
+            return intval($form_data['form_id']);
+        }
+        
+        // Try to get from global variables
+        global $fluentform_current_form_id;
+        if (isset($fluentform_current_form_id)) {
+            return intval($fluentform_current_form_id);
+        }
+        
+        return null;
+    }
+    
+    private function is_form_allowed_for_redemption($form_id) {
+        $settings = get_option('gift_certificates_ff_settings', array());
+        $allowed_form_ids = $settings['allowed_form_ids'] ?? array();
+        
+        // If no forms are specified, allow all forms
+        if (empty($allowed_form_ids)) {
+            return true;
+        }
+        
+        // Check if the current form is in the allowed list
+        return in_array($form_id, $allowed_form_ids);
     }
     
     private function deactivate_fluent_forms_coupon($coupon_code) {
@@ -312,5 +357,31 @@ class GiftCertificateCoupon {
         $gift_certificate = $this->database->get_gift_certificate_by_coupon_code($coupon_code);
         
         return $gift_certificate && $gift_certificate->status === 'active';
+    }
+    
+    public function handle_form_submission_with_coupon($entry_id, $form_data, $form) {
+        // Check if this form submission used a gift certificate coupon
+        $gift_certificate_info = get_transient("gift_certificate_{$entry_id}");
+        
+        if (!$gift_certificate_info) {
+            return;
+        }
+        
+        // Get the coupon that was used
+        $coupon_code = $gift_certificate_info['coupon_code'];
+        $coupon_table_name = $this->get_coupon_table_name();
+        
+        try {
+            $coupon = wpFluent()->table($coupon_table_name)
+                ->where('code', $coupon_code)
+                ->first();
+                
+            if ($coupon) {
+                // Track the coupon usage
+                $this->track_coupon_usage($coupon, $form_data, $entry_id);
+            }
+        } catch (Exception $e) {
+            error_log("Gift Certificate: Error tracking coupon usage: " . $e->getMessage());
+        }
     }
 } 

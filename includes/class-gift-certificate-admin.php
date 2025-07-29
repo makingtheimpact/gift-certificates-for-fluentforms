@@ -541,6 +541,17 @@ class GiftCertificateAdmin {
             $sanitized[$field] = sanitize_text_field($input[$field] ?? '');
         }
         
+        // Sanitize allowed form IDs for redemption
+        $sanitized['allowed_form_ids'] = array();
+        if (isset($input['allowed_form_ids']) && is_array($input['allowed_form_ids'])) {
+            foreach ($input['allowed_form_ids'] as $form_id) {
+                $form_id = intval($form_id);
+                if ($form_id > 0) {
+                    $sanitized['allowed_form_ids'][] = $form_id;
+                }
+            }
+        }
+        
         // Sanitize email settings
         $sanitized['email_template'] = wp_kses_post($input['email_template'] ?? '');
         $sanitized['email_format'] = sanitize_text_field($input['email_format'] ?? 'text');

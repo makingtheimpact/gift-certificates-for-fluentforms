@@ -218,9 +218,12 @@ class GiftCertificateWebhook {
         }
         
         try {
+            // Get allowed form IDs from settings
+            $allowed_form_ids = $this->settings['allowed_form_ids'] ?? array();
+            
             // Prepare settings array based on the actual table structure
             $settings = array(
-                'allowed_form_ids' => array(), // Empty array means all forms
+                'allowed_form_ids' => $allowed_form_ids, // Use selected forms or empty array for all forms
                 'coupon_limit' => '0', // No limit per user
                 'success_message' => '{coupon.code} - {coupon.amount}',
                 'failed_message' => array(

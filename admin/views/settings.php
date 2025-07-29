@@ -25,6 +25,17 @@ if (isset($_POST['submit']) && wp_verify_nonce($_POST['gift_certificates_ff_nonc
     $sanitized['email_template'] = wp_kses_post($input['email_template']);
     $sanitized['email_format'] = sanitize_text_field($input['email_format']);
     
+    // Handle allowed form IDs for redemption
+    $sanitized['allowed_form_ids'] = array();
+    if (isset($input['allowed_form_ids']) && is_array($input['allowed_form_ids'])) {
+        foreach ($input['allowed_form_ids'] as $form_id) {
+            $form_id = intval($form_id);
+            if ($form_id > 0) {
+                $sanitized['allowed_form_ids'][] = $form_id;
+            }
+        }
+    }
+    
     $updated = update_option('gift_certificates_ff_settings', $sanitized);
     if ($updated) {
         echo '<div class="notice notice-success is-dismissible"><p>' . __('Settings saved successfully!', 'gift-certificates-fluentforms') . '</p></div>';
@@ -189,12 +200,42 @@ $settings = get_option('gift_certificates_ff_settings', array());
             </tr>
             
             <tr>
+                <th scope="row"><?php _e('Forms for Redemption', 'gift-certificates-fluentforms'); ?></th>
+                <td>
+                    <select name="gift_certificates_ff_settings[allowed_form_ids][]" multiple style="width: 100%; min-height: 100px;">
+                        <?php
+                        if ($fluent_forms_active && function_exists('wpFluent')) {
+                            try {
+                                $forms = wpFluent()->table('fluentform_forms')->select(array('id', 'title'))->get();
+                                $selected_forms = $settings['allowed_form_ids'] ?? array();
+                                
+                                if (!empty($forms)) {
+                                    foreach ($forms as $form) {
+                                        $selected = in_array($form->id, $selected_forms) ? 'selected' : '';
+                                        echo '<option value="' . esc_attr($form->id) . '" ' . $selected . '>' . esc_html($form->title) . '</option>';
+                                    }
+                                } else {
+                                    echo '<option value="" disabled>' . __('No forms found', 'gift-certificates-fluentforms') . '</option>';
+                                }
+                            } catch (Exception $e) {
+                                echo '<option value="" disabled>' . __('Error loading forms: ' . esc_html($e->getMessage()), 'gift-certificates-fluentforms') . '</option>';
+                            }
+                        } else {
+                            echo '<option value="" disabled>' . __('Fluent Forms not found or not active', 'gift-certificates-fluentforms') . '</option>';
+                        }
+                        ?>
+                    </select>
+                    <p class="description"><?php _e('Select the forms where gift certificates can be redeemed. Hold Ctrl/Cmd to select multiple forms. Leave empty to allow redemption on all forms.', 'gift-certificates-fluentforms'); ?></p>
+                </td>
+            </tr>
+            
+            <tr>
                 <th scope="row"><?php _e('Coupon Table Name', 'gift-certificates-fluentforms'); ?></th>
                 <td>
                     <input type="text" name="gift_certificates_ff_settings[coupon_table_name]" value="<?php echo esc_attr($settings['coupon_table_name'] ?? ''); ?>" class="regular-text" placeholder="fluentform_coupons">
                     <p class="description"><?php _e('Leave empty to use the default table name. Only change this if your Fluent Forms coupon table has a different name.', 'gift-certificates-fluentforms'); ?></p>
-                    <p class="description"><?php _e('Note: Do not include the "wp_" prefix - it will be added automatically.', 'gift-certificates-fluentforms'); ?></p>
-                    <p class="description"><?php _e('Current default:', 'gift-certificates-fluentforms'); ?> <code>fluentform_coupons</code> (becomes <?php echo esc_html($wpdb->prefix . 'fluentform_coupons'); ?>)</p>
+                    <p class="description"><?php _e('Note: The table prefix is automatically added by Fluent Forms.', 'gift-certificates-fluentforms'); ?></p>
+                    <p class="description"><?php _e('Current default:', 'gift-certificates-fluentforms'); ?> <code>fluentform_coupons</code></p>
                 </td>
             </tr>
             
