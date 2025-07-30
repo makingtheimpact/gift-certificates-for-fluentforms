@@ -21,6 +21,7 @@ if (isset($_POST['submit']) && wp_verify_nonce($_POST['gift_certificates_ff_nonc
     $sanitized['sender_name_field_name'] = sanitize_text_field($input['sender_name_field_name']);
     $sanitized['message_field_name'] = sanitize_text_field($input['message_field_name']);
     $sanitized['delivery_date_field_name'] = sanitize_text_field($input['delivery_date_field_name']);
+    $sanitized['design_field_name'] = sanitize_text_field($input['design_field_name']);
     $sanitized['balance_check_page_id'] = intval($input['balance_check_page_id']);
     $sanitized['email_template'] = wp_kses_post($input['email_template']);
     $sanitized['email_format'] = sanitize_text_field($input['email_format']);
@@ -176,6 +177,15 @@ $settings = get_option('gift_certificates_ff_settings', array());
                 <td>
                     <input type="text" name="gift_certificates_ff_settings[delivery_date_field_name]" value="<?php echo esc_attr($settings['delivery_date_field_name'] ?? ''); ?>" class="regular-text">
                     <p class="description"><?php _e('Enter the field name for the delivery date (optional).', 'gift-certificates-fluentforms'); ?></p>
+                </td>
+            </tr>
+            
+            <tr>
+                <th scope="row"><?php _e('Design Selection Field', 'gift-certificates-fluentforms'); ?></th>
+                <td>
+                    <input type="text" name="gift_certificates_ff_settings[design_field_name]" value="<?php echo esc_attr($settings['design_field_name'] ?? ''); ?>" class="regular-text">
+                    <p class="description"><?php _e('Enter the field name for the gift certificate design selection (radio/select field). Leave empty to use default design.', 'gift-certificates-fluentforms'); ?></p>
+                    <p class="description"><?php _e('This field should contain the design ID as the value (e.g., "default", "design_123").', 'gift-certificates-fluentforms'); ?></p>
                 </td>
             </tr>
             

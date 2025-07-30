@@ -1,0 +1,141 @@
+.gift-certificate-designs-container {
+    display: flex;
+    gap: 30px;
+    margin-top: 20px;
+}
+
+.designs-list {
+    flex: 1;
+    max-width: 400px;
+}
+
+.design-editor {
+    flex: 2;
+    background: #fff;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.design-item {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+}
+
+.design-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-color: #0073aa;
+}
+
+.design-item.default-design {
+    border-color: #0073aa;
+    background: #f0f8ff;
+}
+
+.design-item h3 {
+    margin: 0 0 10px 0;
+    color: #333;
+}
+
+.design-preview {
+    text-align: center;
+    margin: 10px 0;
+    padding: 10px;
+    background: #f9f9f9;
+    border-radius: 3px;
+}
+
+.design-preview img {
+    border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.status-active {
+    color: #46b450;
+    font-weight: bold;
+}
+
+.status-inactive {
+    color: #dc3232;
+    font-weight: bold;
+}
+
+.design-actions {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+}
+
+.design-actions .button {
+    flex: 1;
+}
+
+.image-upload-container {
+    margin: 10px 0;
+}
+
+#design-image-preview {
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    margin: 10px 0;
+}
+
+.add-new-design {
+    margin-top: 20px;
+    width: 100%;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .gift-certificate-designs-container {
+        flex-direction: column;
+    }
+    
+    .designs-list {
+        max-width: none;
+    }
+}
+
+/* Form styling */
+#design-form .form-table th {
+    width: 200px;
+}
+
+#design-form .form-table td {
+    padding: 15px 10px;
+}
+
+#email-template {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+/* Loading states */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #0073aa;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+} 

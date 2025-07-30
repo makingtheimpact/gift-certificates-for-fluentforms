@@ -91,6 +91,7 @@ class GiftCertificateWebhook {
             $sender_name = $this->get_field_value($form_data, $this->settings['sender_name_field_name']);
             $message = $this->get_field_value($form_data, $this->settings['message_field_name']);
             $delivery_date = $this->get_field_value($form_data, $this->settings['delivery_date_field_name']);
+            $design_id = $this->get_field_value($form_data, $this->settings['design_field_name']);
             
             error_log("Gift Certificate Webhook: Extracted data - Amount: {$amount}, Email: {$recipient_email}, Name: {$recipient_name}");
             
@@ -123,6 +124,7 @@ class GiftCertificateWebhook {
                 'sender_name' => $sender_name,
                 'message' => $message,
                 'delivery_date' => $delivery_date ? date('Y-m-d', strtotime($delivery_date)) : null,
+                'design_id' => $design_id ?: 'default',
                 'status' => $delivery_date ? 'pending_delivery' : 'active'
             );
             

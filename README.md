@@ -14,6 +14,7 @@ A comprehensive WordPress plugin that extends Fluent Forms Pro to sell and redee
 - **REST API**: Built-in API endpoints for balance checking and management
 - **Admin Interface**: Complete WordPress admin interface for managing gift certificates
 - **Email Templates**: Customizable email templates with HTML support
+- **Design Templates**: Multiple gift certificate design templates with custom images
 - **Shortcodes**: Easy-to-use shortcodes for balance checking and purchase forms
 
 ## Requirements
@@ -41,6 +42,7 @@ Create a form with these fields:
 - **Sender Name**: Text field for sender name
 - **Message**: Textarea for personal message (optional)
 - **Delivery Date**: Date field for scheduled delivery (optional)
+- **Design Selection**: Radio or select field for gift certificate design (optional)
 
 ### 2. Configure Plugin Settings
 
@@ -150,6 +152,12 @@ fetch('/wp-json/gift-certificates/v1/balance', {
 - Email settings
 - API configuration
 
+### Design Templates
+- Create and manage gift certificate designs
+- Upload custom images for each design
+- Customize email templates per design
+- Enable/disable designs
+
 ### How to Use
 - Complete setup instructions
 - Troubleshooting guide
@@ -171,6 +179,46 @@ fetch('/wp-json/gift-certificates/v1/balance', {
 - **Minimal Hooks**: Only essential WordPress hooks are used
 - **Lazy Loading**: Components are loaded only when needed
 - **Asset Optimization**: CSS and JS files are minified and optimized
+
+## Design Templates
+
+The plugin includes a powerful design template system that allows you to create multiple gift certificate designs with custom images and email templates.
+
+### Creating Design Templates
+
+1. Go to **Gift Certificates → Design Templates**
+2. Click **Add New Design**
+3. Configure the design:
+   - **Design Name**: A descriptive name for the design
+   - **Design Image**: Upload a custom image for the gift certificate
+   - **Email Template**: Customize the email template for this design
+   - **Email Format**: Choose between HTML or plain text
+   - **Active**: Enable or disable the design
+
+### Using Design Templates in Forms
+
+1. Add a radio or select field to your Fluent Forms form
+2. Set the field name to match your settings (default: `gift_certificate_design`)
+3. Add options with design IDs as values:
+   - `default` - Default design
+   - `design_123` - Custom design (use the ID shown in admin)
+4. Configure the plugin settings to map this field
+
+### Design Template Features
+
+- **Custom Images**: Each design can have its own image
+- **Individual Email Templates**: Different email templates per design
+- **HTML Support**: Rich HTML email templates with styling
+- **Placeholder Support**: Use placeholders like `{recipient_name}`, `{amount}`, etc.
+- **Responsive Design**: Email templates work on all devices
+
+### Default Design
+
+The plugin includes a default design that:
+- Uses a professional HTML email template
+- Includes a placeholder for design images
+- Works immediately without configuration
+- Cannot be deleted but can be customized
 
 ## Troubleshooting
 

@@ -115,6 +115,7 @@ class GiftCertificatesForFluentForms {
         require_once GIFT_CERTIFICATES_FF_PLUGIN_DIR . 'includes/class-gift-certificate-api.php';
         require_once GIFT_CERTIFICATES_FF_PLUGIN_DIR . 'includes/class-gift-certificate-email.php';
         require_once GIFT_CERTIFICATES_FF_PLUGIN_DIR . 'includes/class-gift-certificate-shortcodes.php';
+        require_once GIFT_CERTIFICATES_FF_PLUGIN_DIR . 'includes/class-gift-certificate-designs.php';
     }
     
     private function init_components() {
@@ -129,6 +130,7 @@ class GiftCertificatesForFluentForms {
         new GiftCertificateAPI();
         new GiftCertificateEmail();
         new GiftCertificateShortcodes();
+        new GiftCertificateDesigns();
     }
     
     /**
@@ -194,6 +196,7 @@ class GiftCertificatesForFluentForms {
             'sender_name_field_name' => 'sender_name',
             'message_field_name' => 'message',
             'delivery_date_field_name' => 'delivery_date',
+            'design_field_name' => 'gift_certificate_design',
             'allowed_form_ids' => array(), // Empty array means all forms are allowed
             'email_template' => $this->get_default_email_template(),
             'api_enabled' => true,

@@ -34,6 +34,7 @@ class GiftCertificateDatabase {
             sender_name varchar(255) NOT NULL,
             message text,
             delivery_date date DEFAULT NULL,
+            design_id varchar(50) DEFAULT 'default',
             status varchar(20) DEFAULT 'active',
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -41,7 +42,8 @@ class GiftCertificateDatabase {
             UNIQUE KEY coupon_code (coupon_code),
             KEY recipient_email (recipient_email),
             KEY status (status),
-            KEY delivery_date (delivery_date)
+            KEY delivery_date (delivery_date),
+            KEY design_id (design_id)
         ) $charset_collate;";
         
         // Transactions table for tracking usage
@@ -77,6 +79,7 @@ class GiftCertificateDatabase {
             'sender_name' => '',
             'message' => '',
             'delivery_date' => null,
+            'design_id' => 'default',
             'status' => 'active'
         );
         

@@ -35,10 +35,18 @@ class GiftCertificateEmail {
             return false;
         }
         
+        // Get the design template
+        $designs = new GiftCertificateDesigns();
+        $design = $designs->get_design($gift_certificate->design_id);
+        
+        if (!$design) {
+            $design = $designs->get_default_design();
+        }
+        
         // Prepare email content
         $subject = $this->get_email_subject($gift_certificate);
-        $message = $this->get_email_message($gift_certificate);
-        $headers = $this->get_email_headers();
+        $message = $this->get_email_message($gift_certificate, $design);
+        $headers = $this->get_email_headers($design);
         
         // Send email
         error_log("Gift Certificate Email: Attempting to send email to {$gift_certificate->recipient_email}");
@@ -124,8 +132,8 @@ class GiftCertificateEmail {
         return $subject;
     }
     
-    private function get_email_message($gift_certificate) {
-        $template = $this->settings['email_template'] ?? $this->get_default_email_template();
+    private function get_email_message($gift_certificate, $design) {
+        $template = $design['email_template'] ?? $this->get_default_email_template();
         
         // Replace placeholders
         $message = str_replace(
@@ -153,8 +161,8 @@ class GiftCertificateEmail {
         );
         
         // Convert to HTML if needed
-        if ($this->settings['email_format'] === 'html') {
-            $message = $this->convert_to_html($gift_certificate->id, $message); // Pass $gift_certificate_id
+        if ($design['email_format'] === 'html') {
+            $message = $this->convert_to_html($gift_certificate->id, $message, $design); // Pass $gift_certificate_id and design
         }
         
         return $message;
@@ -173,7 +181,7 @@ class GiftCertificateEmail {
                "[end]";
     }
     
-    private function convert_to_html($gift_certificate_id, $message) {
+    private function convert_to_html($gift_certificate_id, $message, $design) {
         $html = '<!DOCTYPE html>
 <html>
 <head>
@@ -198,6 +206,7 @@ class GiftCertificateEmail {
             <h1>🎁 Gift Certificate</h1>
         </div>
         <div class="content">
+            {design_image}
             <p>Dear <strong>{recipient_name}</strong>,</p>
             <p>You have received a gift certificate from <strong>{sender_name}</strong>!</p>
             
@@ -229,6 +238,14 @@ class GiftCertificateEmail {
         // Replace placeholders in HTML template
         $gift_certificate = $this->database->get_gift_certificate($gift_certificate_id);
         
+        // Add design image if available
+        $design_image_html = '';
+        if (!empty($design['image_url'])) {
+            $design_image_html = '<div class="design-image" style="text-align: center; margin: 20px 0;">
+                <img src="' . esc_url($design['image_url']) . '" alt="Gift Certificate Design" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+            </div>';
+        }
+        
         return str_replace(
             array(
                 '{recipient_name}',
@@ -237,7 +254,8 @@ class GiftCertificateEmail {
                 '{coupon_code}',
                 '{message}',
                 '{site_name}',
-                '{balance_check_url}'
+                '{balance_check_url}',
+                '{design_image}'
             ),
             array(
                 $gift_certificate->recipient_name,
@@ -246,17 +264,18 @@ class GiftCertificateEmail {
                 $gift_certificate->coupon_code,
                 $gift_certificate->message,
                 get_bloginfo('name'),
-                $this->get_balance_check_url()
+                $this->get_balance_check_url(),
+                $design_image_html
             ),
             $html
         );
     }
     
-    private function get_email_headers() {
+    private function get_email_headers($design) {
         $headers = array();
         
         // Set content type
-        if ($this->settings['email_format'] === 'html') {
+        if ($design['email_format'] === 'html') {
             $headers[] = 'Content-Type: text/html; charset=UTF-8';
         } else {
             $headers[] = 'Content-Type: text/plain; charset=UTF-8';
@@ -303,12 +322,17 @@ class GiftCertificateEmail {
             'sender_name' => 'Test Sender',
             'original_amount' => 50.00,
             'coupon_code' => 'GCTEST123',
-            'message' => 'This is a test gift certificate message.'
+            'message' => 'This is a test gift certificate message.',
+            'design_id' => 'default'
         );
         
+        // Get the default design
+        $designs = new GiftCertificateDesigns();
+        $design = $designs->get_default_design();
+        
         $subject = $this->get_email_subject($test_certificate);
-        $message = $this->get_email_message($test_certificate);
-        $headers = $this->get_email_headers();
+        $message = $this->get_email_message($test_certificate, $design);
+        $headers = $this->get_email_headers($design);
         
         error_log("Gift Certificate Email: Test email subject: {$subject}");
         error_log("Gift Certificate Email: Test email headers: " . print_r($headers, true));
@@ -356,9 +380,17 @@ class GiftCertificateEmail {
             return false;
         }
         
+        // Get the design template
+        $designs = new GiftCertificateDesigns();
+        $design = $designs->get_design($gift_certificate->design_id);
+        
+        if (!$design) {
+            $design = $designs->get_default_design();
+        }
+        
         return array(
             'subject' => $this->get_email_subject($gift_certificate),
-            'message' => $this->get_email_message($gift_certificate),
+            'message' => $this->get_email_message($gift_certificate, $design),
             'recipient_email' => $gift_certificate->recipient_email
         );
     }
