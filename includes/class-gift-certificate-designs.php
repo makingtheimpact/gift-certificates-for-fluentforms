@@ -22,6 +22,12 @@ class GiftCertificateDesigns {
         add_action('wp_ajax_delete_gift_certificate_design', array($this, 'delete_design_ajax'));
         add_action('wp_ajax_get_gift_certificate_design', array($this, 'get_design_ajax'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
+        
+        // Fix corrupted templates on plugin load (only once)
+        if (!get_option('gift_certificate_templates_fixed', false)) {
+            $this->fix_corrupted_templates();
+            update_option('gift_certificate_templates_fixed', true);
+        }
     }
     
     public function add_designs_menu() {
@@ -207,7 +213,7 @@ class GiftCertificateDesigns {
             'name' => sanitize_text_field($_POST['design_name']),
             'image_id' => intval($_POST['design_image_id']),
             'image_url' => esc_url_raw($_POST['design_image_url']),
-            'email_template' => wp_kses_post($_POST['email_template']),
+            'email_template' => $this->sanitize_email_template($_POST['email_template']),
             'email_format' => sanitize_text_field($_POST['email_format']),
             'active' => isset($_POST['design_active']) ? 1 : 0,
             'created_at' => current_time('mysql')
@@ -220,6 +226,117 @@ class GiftCertificateDesigns {
         } else {
             wp_send_json_error(array('message' => __('Error saving design. Please try again.', 'gift-certificates-fluentforms')));
         }
+    }
+    
+    /**
+     * Sanitize email template while preserving HTML structure
+     * This function allows email-specific HTML while removing potentially dangerous content
+     */
+    private function sanitize_email_template($template) {
+        if (empty($template)) {
+            return '';
+        }
+        
+        // Debug: Log the original template
+        error_log('Gift Certificate: Original template length: ' . strlen($template));
+        
+        // Allow specific HTML tags and attributes for email templates
+        $allowed_html = array(
+            'html' => array(
+                'xmlns' => array(),
+                'lang' => array()
+            ),
+            'head' => array(),
+            'meta' => array(
+                'http-equiv' => array(),
+                'content' => array(),
+                'name' => array(),
+                'charset' => array()
+            ),
+            'title' => array(),
+            'style' => array(
+                'type' => array()
+            ),
+            'body' => array(
+                'style' => array()
+            ),
+            'table' => array(
+                'role' => array(),
+                'cellspacing' => array(),
+                'cellpadding' => array(),
+                'border' => array(),
+                'width' => array(),
+                'align' => array(),
+                'style' => array(),
+                'class' => array()
+            ),
+            'tr' => array(
+                'style' => array()
+            ),
+            'td' => array(
+                'style' => array(),
+                'class' => array(),
+                'align' => array(),
+                'width' => array()
+            ),
+            'div' => array(
+                'style' => array(),
+                'class' => array()
+            ),
+            'p' => array(
+                'style' => array()
+            ),
+            'h1' => array(
+                'style' => array()
+            ),
+            'h2' => array(
+                'style' => array()
+            ),
+            'h3' => array(
+                'style' => array()
+            ),
+            'strong' => array(),
+            'em' => array(),
+            'br' => array(),
+            'a' => array(
+                'href' => array(),
+                'style' => array(),
+                'class' => array()
+            ),
+            'img' => array(
+                'src' => array(),
+                'alt' => array(),
+                'style' => array(),
+                'width' => array(),
+                'height' => array()
+            ),
+            'span' => array(
+                'style' => array(),
+                'class' => array()
+            )
+        );
+        
+        // Use wp_kses with our custom allowed HTML
+        $sanitized = wp_kses($template, $allowed_html);
+        
+        // Debug: Log after wp_kses
+        error_log('Gift Certificate: After wp_kses length: ' . strlen($sanitized));
+        
+        // Preserve conditional comments for Outlook
+        $sanitized = preg_replace('/&lt;!--\[if mso\]&gt;--&gt;/', '<!--[if mso]>', $sanitized);
+        $sanitized = preg_replace('/&lt;!\[endif\]--&gt;/', '<![endif]-->', $sanitized);
+        
+        // Preserve other common email-specific entities
+        $sanitized = str_replace(
+            array('&lt;', '&gt;', '&amp;', '&quot;', '&#039;'),
+            array('<', '>', '&', '"', "'"),
+            $sanitized
+        );
+        
+        // Debug: Log final result
+        error_log('Gift Certificate: Final sanitized length: ' . strlen($sanitized));
+        
+        return $sanitized;
     }
     
     public function delete_design_ajax() {
@@ -248,7 +365,16 @@ class GiftCertificateDesigns {
     
     public function get_designs() {
         $designs = get_option($this->designs_option, array());
-        return is_array($designs) ? $designs : array();
+        $designs = is_array($designs) ? $designs : array();
+        
+        // Decode email templates for all designs
+        foreach ($designs as $design_id => $design) {
+            if (isset($design['email_template'])) {
+                $designs[$design_id]['email_template'] = $this->decode_email_template($design['email_template']);
+            }
+        }
+        
+        return $designs;
     }
     
     public function get_design($design_id) {
@@ -256,13 +382,27 @@ class GiftCertificateDesigns {
             // Check if there's a saved default design, otherwise return the built-in default
             $designs = $this->get_designs();
             if (isset($designs['default'])) {
-                return $designs['default'];
+                $design = $designs['default'];
+                // Decode the email template
+                if (isset($design['email_template'])) {
+                    $design['email_template'] = $this->decode_email_template($design['email_template']);
+                }
+                return $design;
             }
             return $this->get_default_design();
         }
         
         $designs = $this->get_designs();
-        return isset($designs[$design_id]) ? $designs[$design_id] : false;
+        if (isset($designs[$design_id])) {
+            $design = $designs[$design_id];
+            // Decode the email template
+            if (isset($design['email_template'])) {
+                $design['email_template'] = $this->decode_email_template($design['email_template']);
+            }
+            return $design;
+        }
+        
+        return false;
     }
     
     public function get_default_design() {
@@ -342,10 +482,35 @@ class GiftCertificateDesigns {
         $design = $this->get_design($design_id);
         
         if ($design) {
+            // Decode the email template to prevent HTML entity issues
+            if (isset($design['email_template'])) {
+                $design['email_template'] = $this->decode_email_template($design['email_template']);
+            }
             wp_send_json_success($design);
         } else {
             wp_send_json_error(array('message' => __('Design not found.', 'gift-certificates-fluentforms')));
         }
+    }
+    
+    /**
+     * Decode email template to prevent HTML entity issues
+     */
+    private function decode_email_template($template) {
+        if (empty($template)) {
+            return '';
+        }
+        
+        // Decode common HTML entities that might have been escaped
+        $decoded = html_entity_decode($template, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        
+        // Fix any remaining escaped entities
+        $decoded = str_replace(
+            array('&lt;', '&gt;', '&amp;', '&quot;', '&#039;'),
+            array('<', '>', '&', '"', "'"),
+            $decoded
+        );
+        
+        return $decoded;
     }
     
     public function get_active_designs() {
@@ -509,5 +674,36 @@ class GiftCertificateDesigns {
     </table>
 </body>
 </html>';
+    }
+
+    /**
+     * Fix existing corrupted email templates in the database
+     * This method can be called to clean up templates that have HTML entities
+     */
+    public function fix_corrupted_templates() {
+        $designs = get_option($this->designs_option, array());
+        $updated = false;
+        
+        if (is_array($designs)) {
+            foreach ($designs as $design_id => $design) {
+                if (isset($design['email_template'])) {
+                    $original_template = $design['email_template'];
+                    $fixed_template = $this->decode_email_template($original_template);
+                    
+                    // If the template was corrupted, fix it
+                    if ($original_template !== $fixed_template) {
+                        $designs[$design_id]['email_template'] = $fixed_template;
+                        $updated = true;
+                    }
+                }
+            }
+            
+            if ($updated) {
+                update_option($this->designs_option, $designs);
+                return true;
+            }
+        }
+        
+        return false;
     }
 } 
