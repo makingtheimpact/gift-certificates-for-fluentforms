@@ -117,7 +117,18 @@ class GiftCertificateDatabase {
         
         return $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT * FROM {$this->gift_certificates_table} WHERE coupon_code = %s AND status = 'active'",
+                "SELECT * FROM {$this->gift_certificates_table} WHERE coupon_code = %s",
+                $coupon_code
+            )
+        );
+    }
+    
+    public function get_active_gift_certificate_by_coupon_code($coupon_code) {
+        global $wpdb;
+        
+        return $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM {$this->gift_certificates_table} WHERE coupon_code = %s AND status IN ('active', 'delivered')",
                 $coupon_code
             )
         );

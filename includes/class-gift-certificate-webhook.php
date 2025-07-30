@@ -177,18 +177,32 @@ class GiftCertificateWebhook {
             // Look for applied coupons in the form data
             $applied_coupons = array();
             
-            // Check for __ff_all_applied_coupons field
+            // Check for __ff_all_applied_coupons field (this is the primary source)
             if (isset($form_data['__ff_all_applied_coupons'])) {
-                $applied_coupons = json_decode($form_data['__ff_all_applied_coupons'], true);
-                if (!is_array($applied_coupons)) {
-                    $applied_coupons = array();
+                $coupons_json = $form_data['__ff_all_applied_coupons'];
+                $decoded_coupons = json_decode($coupons_json, true);
+                
+                if (is_array($decoded_coupons)) {
+                    $applied_coupons = $decoded_coupons;
+                } else {
+                    // If JSON decode fails, try to extract the coupon code manually
+                    preg_match_all('/"([^"]+)"/', $coupons_json, $matches);
+                    if (!empty($matches[1])) {
+                        $applied_coupons = $matches[1];
+                    }
                 }
             }
             
-            // Also check for individual coupon fields
-            foreach ($form_data as $key => $value) {
-                if (strpos($key, 'coupon') !== false && !empty($value) && !in_array($value, $applied_coupons)) {
-                    $applied_coupons[] = $value;
+            // If no coupons found in __ff_all_applied_coupons, check individual coupon fields
+            if (empty($applied_coupons)) {
+                foreach ($form_data as $key => $value) {
+                    if (strpos($key, 'coupon') !== false && !empty($value)) {
+                        // Clean the value to ensure it's just the coupon code
+                        $clean_value = trim($value);
+                        if (!empty($clean_value) && !in_array($clean_value, $applied_coupons)) {
+                            $applied_coupons[] = $clean_value;
+                        }
+                    }
                 }
             }
             
@@ -218,17 +232,22 @@ class GiftCertificateWebhook {
             error_log("Gift Certificate Webhook: Processing coupon redemption - Code: {$coupon_code}");
             
             // Get the gift certificate
-            $gift_certificate = $this->database->get_gift_certificate_by_coupon_code($coupon_code);
+            error_log("Gift Certificate Webhook: Looking up gift certificate for coupon code: {$coupon_code}");
+            $gift_certificate = $this->database->get_active_gift_certificate_by_coupon_code($coupon_code);
             
             if (!$gift_certificate) {
-                error_log("Gift Certificate Webhook: Gift certificate not found for coupon code: {$coupon_code}");
+                error_log("Gift Certificate Webhook: Active gift certificate not found for coupon code: {$coupon_code}");
+                
+                // Let's also check if there are any gift certificates in the database
+                global $wpdb;
+                $table_name = $wpdb->prefix . 'gift_certificates_ff';
+                $all_certificates = $wpdb->get_results("SELECT coupon_code, status FROM {$table_name} LIMIT 5");
+                error_log("Gift Certificate Webhook: Available certificates in database: " . print_r($all_certificates, true));
+                
                 return;
             }
             
-            if ($gift_certificate->status !== 'active') {
-                error_log("Gift Certificate Webhook: Gift certificate is not active - Code: {$coupon_code}, Status: {$gift_certificate->status}");
-                return;
-            }
+            error_log("Gift Certificate Webhook: Found gift certificate - ID: {$gift_certificate->id}, Status: {$gift_certificate->status}, Balance: {$gift_certificate->current_balance}");
             
             // Calculate the order total to determine how much to deduct
             $order_total = $this->calculate_order_total($form_data);
