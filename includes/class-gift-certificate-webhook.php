@@ -93,7 +93,7 @@ class GiftCertificateWebhook {
             $delivery_date = $this->get_field_value($form_data, $this->settings['delivery_date_field_name']);
             $design_id = $this->get_field_value($form_data, $this->settings['design_field_name']);
             
-            error_log("Gift Certificate Webhook: Extracted data - Amount: {$amount}, Email: {$recipient_email}, Name: {$recipient_name}");
+            error_log("Gift Certificate Webhook: Extracted data - Amount: {$amount}, Email: {$recipient_email}, Name: {$recipient_name}, Design: {$design_id}");
             
             // Validate required fields
             if (empty($amount) || empty($recipient_email) || empty($recipient_name)) {
@@ -111,6 +111,9 @@ class GiftCertificateWebhook {
                 throw new Exception('Invalid recipient email address');
             }
             
+            // Validate and process design ID
+            $design_id = $this->validate_and_process_design_id($design_id);
+            
             // Generate unique coupon code
             $coupon_code = $this->generate_coupon_code();
             
@@ -124,7 +127,7 @@ class GiftCertificateWebhook {
                 'sender_name' => $sender_name,
                 'message' => $message,
                 'delivery_date' => $delivery_date ? date('Y-m-d', strtotime($delivery_date)) : null,
-                'design_id' => $design_id ?: 'default',
+                'design_id' => $design_id,
                 'status' => $delivery_date ? 'pending_delivery' : 'active'
             );
             
@@ -149,7 +152,7 @@ class GiftCertificateWebhook {
             error_log("Gift Certificate Webhook: Email sent: " . ($email_sent ? 'Yes' : 'No'));
             
             // Log success
-            error_log("Gift certificate created successfully: ID {$gift_certificate_id}, Coupon: {$coupon_code}");
+            error_log("Gift certificate created successfully: ID {$gift_certificate_id}, Coupon: {$coupon_code}, Design: {$design_id}");
             
         } catch (Exception $e) {
             error_log("Gift certificate creation failed: " . $e->getMessage());
@@ -166,6 +169,36 @@ class GiftCertificateWebhook {
                     ))
                 ));
         }
+    }
+    
+    /**
+     * Validate and process the design ID from form submission
+     */
+    private function validate_and_process_design_id($submitted_design_id) {
+        // If no design field is configured or no value submitted, use default
+        if (empty($this->settings['design_field_name']) || empty($submitted_design_id)) {
+            error_log("Gift Certificate Webhook: No design field configured or no value submitted, using default design");
+            return 'default';
+        }
+        
+        // Clean the submitted design ID
+        $design_id = trim($submitted_design_id);
+        
+        // Get available designs
+        $designs = new GiftCertificateDesigns();
+        $available_designs = $designs->get_active_designs();
+        
+        // Check if the submitted design ID exists and is active
+        if (isset($available_designs[$design_id])) {
+            error_log("Gift Certificate Webhook: Valid design ID submitted: {$design_id}");
+            return $design_id;
+        }
+        
+        // If design doesn't exist or is not active, log warning and use default
+        error_log("Gift Certificate Webhook: Invalid or inactive design ID submitted: {$design_id}. Available designs: " . implode(', ', array_keys($available_designs)));
+        error_log("Gift Certificate Webhook: Falling back to default design");
+        
+        return 'default';
     }
     
     /**

@@ -44,6 +44,19 @@ Create a form with these fields:
 - **Delivery Date**: Date field for scheduled delivery (optional)
 - **Design Selection**: Radio or select field for gift certificate design (optional)
 
+#### Design Selection Field Setup
+
+For the design selection field:
+1. Use a **Radio** or **Select** field type
+2. Set option values to match design IDs exactly (e.g., "default", "design_123")
+3. Set option labels to user-friendly names (e.g., "Classic Design", "Holiday Theme")
+4. Configure the field name in plugin settings
+
+**Example:**
+- Option Label: "Classic Gift Certificate" | Value: "default"
+- Option Label: "Holiday Special" | Value: "holiday_theme"
+- Option Label: "Birthday Celebration" | Value: "birthday_design"
+
 ### 2. Configure Plugin Settings
 
 1. Go to **Gift Certificates → Settings**
@@ -73,6 +86,10 @@ Add your preferred payment gateway (Stripe, PayPal, etc.) to the Fluent Forms fo
 5. Coupon is deactivated when balance reaches zero
 
 ## Usage
+
+### Design Template Mapping
+
+For detailed instructions on setting up design template mapping with the webhook system, see [Webhook Design Mapping Guide](docs/WEBHOOK_DESIGN_MAPPING.md).
 
 ### Shortcodes
 

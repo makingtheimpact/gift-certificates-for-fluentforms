@@ -203,7 +203,7 @@ class GiftCertificateEmail {
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎁 Gift Certificate</h1>
+            <h1>🎁 A Gift for You</h1>
         </div>
         <div class="content">
             {design_image}

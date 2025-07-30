@@ -354,6 +354,28 @@ class GiftCertificateDesigns {
         return $active_designs;
     }
     
+    /**
+     * Get a list of available design IDs and names for form configuration
+     */
+    public function get_design_options_for_form() {
+        $active_designs = $this->get_active_designs();
+        $options = array();
+        
+        foreach ($active_designs as $design_id => $design) {
+            $options[$design_id] = $design['name'];
+        }
+        
+        return $options;
+    }
+    
+    /**
+     * Validate if a design ID exists and is active
+     */
+    public function is_valid_design_id($design_id) {
+        $active_designs = $this->get_active_designs();
+        return isset($active_designs[$design_id]);
+    }
+    
     private function get_default_email_template() {
         return '<!DOCTYPE html>
 <html>
