@@ -67,26 +67,35 @@ class GiftCertificateDesigns {
     
     public function designs_page() {
         $designs = $this->get_designs();
-        $default_design = $this->get_default_design();
+        $default_design = $this->get_design('default'); // This will get saved default or built-in default
         ?>
         <div class="wrap">
             <h1><?php _e('Gift Certificate Design Templates', 'gift-certificates-fluentforms'); ?></h1>
             
             <div class="notice notice-info">
-                <p><?php _e('Create and manage gift certificate design templates. Each design can have its own email template and image.', 'gift-certificates-fluentforms'); ?></p>
+                <p><?php _e('Create and manage gift certificate design templates. Each design can have its own email template and image. The default design can be edited but not deleted.', 'gift-certificates-fluentforms'); ?></p>
             </div>
             
             <div class="gift-certificate-designs-container">
                 <div class="designs-list">
                     <h2><?php _e('Available Designs', 'gift-certificates-fluentforms'); ?></h2>
                     
-                    <div class="design-item default-design">
+                    <div class="design-item default-design" data-design-id="default">
                         <h3><?php _e('Default Design', 'gift-certificates-fluentforms'); ?></h3>
                         <div class="design-preview">
                             <img src="<?php echo esc_url($default_design['image_url']); ?>" alt="Default Design" style="max-width: 200px; height: auto;">
                         </div>
                         <p><strong><?php _e('ID:', 'gift-certificates-fluentforms'); ?></strong> default</p>
-                        <p><strong><?php _e('Status:', 'gift-certificates-fluentforms'); ?></strong> <span class="status-active"><?php _e('Active', 'gift-certificates-fluentforms'); ?></span></p>
+                        <p><strong><?php _e('Status:', 'gift-certificates-fluentforms'); ?></strong> 
+                            <span class="status-<?php echo $default_design['active'] ? 'active' : 'inactive'; ?>">
+                                <?php echo $default_design['active'] ? __('Active', 'gift-certificates-fluentforms') : __('Inactive', 'gift-certificates-fluentforms'); ?>
+                            </span>
+                        </p>
+                        <div class="design-actions">
+                            <button type="button" class="button edit-design" data-design-id="default">
+                                <?php _e('Edit', 'gift-certificates-fluentforms'); ?>
+                            </button>
+                        </div>
                     </div>
                     
                     <?php foreach ($designs as $design): ?>
@@ -225,7 +234,7 @@ class GiftCertificateDesigns {
         $design_id = sanitize_text_field($_POST['design_id']);
         
         if ($design_id === 'default') {
-            wp_send_json_error(array('message' => __('Cannot delete the default design.', 'gift-certificates-fluentforms')));
+            wp_send_json_error(array('message' => __('The default design cannot be deleted, but you can edit it or disable it.', 'gift-certificates-fluentforms')));
         }
         
         $result = $this->delete_design($design_id);
@@ -244,6 +253,11 @@ class GiftCertificateDesigns {
     
     public function get_design($design_id) {
         if ($design_id === 'default') {
+            // Check if there's a saved default design, otherwise return the built-in default
+            $designs = $this->get_designs();
+            if (isset($designs['default'])) {
+                return $designs['default'];
+            }
             return $this->get_default_design();
         }
         
@@ -277,6 +291,12 @@ class GiftCertificateDesigns {
         // Generate unique ID if not provided
         if (empty($design_data['id'])) {
             $design_data['id'] = 'design_' . time() . '_' . rand(1000, 9999);
+        }
+        
+        // Ensure the design has all required fields
+        if ($design_data['id'] === 'default') {
+            $default_design = $this->get_default_design();
+            $design_data = wp_parse_args($design_data, $default_design);
         }
         
         $designs[$design_data['id']] = $design_data;
@@ -318,12 +338,15 @@ class GiftCertificateDesigns {
         $designs = $this->get_designs();
         $active_designs = array();
         
-        // Always include default design
-        $active_designs['default'] = $this->get_default_design();
+        // Get the default design (saved or built-in)
+        $default_design = $this->get_design('default');
+        if ($default_design['active']) {
+            $active_designs['default'] = $default_design;
+        }
         
         // Add other active designs
         foreach ($designs as $design) {
-            if ($design['active']) {
+            if ($design['active'] && $design['id'] !== 'default') {
                 $active_designs[$design['id']] = $design;
             }
         }
