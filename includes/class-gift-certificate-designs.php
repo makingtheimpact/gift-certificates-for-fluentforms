@@ -285,6 +285,20 @@ class GiftCertificateDesigns {
         );
     }
     
+    private function get_default_plain_text_template() {
+        return "Dear {recipient_name},\n\n" .
+               "You have received a beautiful gift certificate from {sender_name}!\n\n" .
+               "Gift Certificate Details:\n" .
+               "Amount: ${amount}\n" .
+               "Code: {coupon_code}\n\n" .
+               "Message from {sender_name}:\n{message}\n\n" .
+               "You can use this gift certificate on our website. Simply enter the coupon code during checkout to apply your discount.\n\n" .
+               "You can check your balance at any time at: {balance_check_url}\n\n" .
+               "Thank you for choosing {site_name}!\n\n" .
+               "{site_name}\n" .
+               "{site_url}";
+    }
+    
     public function save_design($design_data) {
         $designs = $this->get_designs();
         
@@ -377,57 +391,122 @@ class GiftCertificateDesigns {
     }
     
     private function get_default_email_template() {
-        return '<!DOCTYPE html>
-<html>
+        return '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gift Certificate</title>
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
-        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
-        .header h1 { margin: 0; font-size: 28px; }
-        .content { padding: 30px; }
-        .gift-details { background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea; }
-        .coupon-code { font-size: 24px; font-weight: bold; color: #667eea; text-align: center; padding: 15px; background-color: #e3f2fd; border-radius: 5px; margin: 15px 0; }
-        .message { font-style: italic; margin: 20px 0; padding: 20px; background-color: #fff3e0; border-radius: 5px; border-left: 4px solid #ff9800; }
+    <!--[if mso]>
+    <noscript>
+        <xml>
+            <o:OfficeDocumentSettings>
+                <o:PixelsPerInch>96</o:PixelsPerInch>
+            </o:OfficeDocumentSettings>
+        </xml>
+    </noscript>
+    <![endif]-->
+    <style type="text/css">
+        /* Reset styles */
+        body, table, td, p, a, li, blockquote { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+        
+        /* Base styles */
+        body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.6; color: #333333; background-color: #f4f4f4; }
+        
+        /* Container */
+        .email-container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
+        
+        /* Header */
+        .header { background-color: #4a90e2; color: #ffffff; padding: 30px 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 28px; font-weight: bold; }
+        
+        /* Content */
+        .content { padding: 30px 20px; }
+        .content p { margin: 0 0 15px 0; }
+        
+        /* Gift details */
+        .gift-details { background-color: #f8f9fa; padding: 20px; margin: 20px 0; border-left: 4px solid #4a90e2; }
+        .gift-details h3 { margin: 0 0 15px 0; color: #333333; }
+        
+        /* Amount */
+        .amount { font-size: 32px; font-weight: bold; color: #4a90e2; text-align: center; margin: 15px 0; }
+        
+        /* Coupon code */
+        .coupon-code { font-size: 24px; font-weight: bold; color: #4a90e2; text-align: center; padding: 15px; background-color: #e3f2fd; margin: 15px 0; }
+        
+        /* Message */
+        .message { font-style: italic; margin: 20px 0; padding: 20px; background-color: #fff3e0; border-left: 4px solid #ff9800; }
+        
+        /* Button */
+        .button { display: inline-block; padding: 12px 24px; background-color: #4a90e2; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; }
+        
+        /* Footer */
         .footer { text-align: center; margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-top: 1px solid #dee2e6; }
-        .button { display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 25px; font-weight: bold; }
-        .amount { font-size: 32px; font-weight: bold; color: #667eea; text-align: center; }
+        
+        /* Responsive */
+        @media only screen and (max-width: 600px) {
+            .email-container { width: 100% !important; }
+            .content { padding: 20px 15px !important; }
+            .header { padding: 20px 15px !important; }
+            .header h1 { font-size: 24px !important; }
+            .amount { font-size: 28px !important; }
+            .coupon-code { font-size: 20px !important; }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🎁 Gift Certificate</h1>
-        </div>
-        <div class="content">
-            <p>Dear <strong>{recipient_name}</strong>,</p>
-            <p>You have received a beautiful gift certificate from <strong>{sender_name}</strong>!</p>
-            
-            <div class="gift-details">
-                <h3>Gift Certificate Details:</h3>
-                <div class="amount">${amount}</div>
-                <div class="coupon-code">{coupon_code}</div>
-            </div>
-            
-            <div class="message">
-                <strong>Message from {sender_name}:</strong><br>
-                {message}
-            </div>
-            
-            <p>You can use this gift certificate on our website. Simply enter the coupon code during checkout to apply your discount.</p>
-            
-            <p style="text-align: center;">
-                <a href="{balance_check_url}" class="button">Check Balance</a>
-            </p>
-        </div>
-        <div class="footer">
-            <p>Thank you for choosing {site_name}!</p>
-            <p><strong>{site_name}</strong></p>
-        </div>
-    </div>
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+        <tr>
+            <td align="center" style="background-color: #f4f4f4; padding: 20px 0;">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="email-container">
+                    <tr>
+                        <td class="header">
+                            <h1>🎁 Gift Certificate</h1>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="content">
+                            <p>Dear <strong>{recipient_name}</strong>,</p>
+                            <p>You have received a beautiful gift certificate from <strong>{sender_name}</strong>!</p>
+                            
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" class="gift-details">
+                                <tr>
+                                    <td>
+                                        <h3>Gift Certificate Details:</h3>
+                                        <div class="amount">${amount}</div>
+                                        <div class="coupon-code">{coupon_code}</div>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" class="message">
+                                <tr>
+                                    <td>
+                                        <strong>Message from {sender_name}:</strong><br>
+                                        {message}
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <p>You can use this gift certificate on our website. Simply enter the coupon code during checkout to apply your discount.</p>
+                            
+                            <p style="text-align: center;">
+                                <a href="{balance_check_url}" class="button">Check Balance</a>
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="footer">
+                            <p>Thank you for choosing {site_name}!</p>
+                            <p><strong>{site_name}</strong></p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>';
     }
