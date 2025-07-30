@@ -35,16 +35,22 @@ class GiftCertificateWebhook {
         // Log the submission for debugging
         error_log("Gift Certificate Webhook: Form submission received - Entry ID: {$entry_id}, Form ID: {$form->id}");
         
-        // Check if this is the gift certificate form
-        if ($form->id != $this->settings['gift_certificate_form_id']) {
-            error_log("Gift Certificate Webhook: Form ID mismatch - Expected: {$this->settings['gift_certificate_form_id']}, Got: {$form->id}");
+        // Check if this is the gift certificate creation form
+        if ($form->id == $this->settings['gift_certificate_form_id']) {
+            error_log("Gift Certificate Webhook: Processing gift certificate creation - Entry ID: {$entry_id}");
+            $this->process_gift_certificate_submission($entry_id, $form_data, $form);
             return;
         }
         
-        error_log("Gift Certificate Webhook: Processing gift certificate submission - Entry ID: {$entry_id}");
+        // Check if this is a redemption form
+        $allowed_form_ids = $this->settings['allowed_form_ids'] ?? array();
+        if (in_array(strval($form->id), $allowed_form_ids)) {
+            error_log("Gift Certificate Webhook: Processing gift certificate redemption - Entry ID: {$entry_id}");
+            $this->process_gift_certificate_redemption($entry_id, $form_data, $form);
+            return;
+        }
         
-        // Process the submission
-        $this->process_gift_certificate_submission($entry_id, $form_data, $form);
+        error_log("Gift Certificate Webhook: Form ID {$form->id} not configured for gift certificate processing");
     }
     
     public function handle_ajax_webhook() {
@@ -158,6 +164,149 @@ class GiftCertificateWebhook {
                     ))
                 ));
         }
+    }
+    
+    /**
+     * Process gift certificate redemption when a coupon is used
+     */
+    private function process_gift_certificate_redemption($entry_id, $form_data, $form) {
+        try {
+            error_log("Gift Certificate Webhook: Starting redemption processing - Entry ID: {$entry_id}");
+            error_log("Gift Certificate Webhook: Redemption form data: " . print_r($form_data, true));
+            
+            // Look for applied coupons in the form data
+            $applied_coupons = array();
+            
+            // Check for __ff_all_applied_coupons field
+            if (isset($form_data['__ff_all_applied_coupons'])) {
+                $applied_coupons = json_decode($form_data['__ff_all_applied_coupons'], true);
+                if (!is_array($applied_coupons)) {
+                    $applied_coupons = array();
+                }
+            }
+            
+            // Also check for individual coupon fields
+            foreach ($form_data as $key => $value) {
+                if (strpos($key, 'coupon') !== false && !empty($value) && !in_array($value, $applied_coupons)) {
+                    $applied_coupons[] = $value;
+                }
+            }
+            
+            error_log("Gift Certificate Webhook: Applied coupons found: " . print_r($applied_coupons, true));
+            
+            if (empty($applied_coupons)) {
+                error_log("Gift Certificate Webhook: No coupons applied in this submission");
+                return;
+            }
+            
+            // Process each applied coupon
+            foreach ($applied_coupons as $coupon_code) {
+                $this->process_single_coupon_redemption($coupon_code, $entry_id, $form_data, $form);
+            }
+            
+        } catch (Exception $e) {
+            error_log("Gift certificate redemption processing failed: " . $e->getMessage());
+            error_log("Gift Certificate Webhook: Redemption exception details - " . $e->getTraceAsString());
+        }
+    }
+    
+    /**
+     * Process redemption for a single coupon code
+     */
+    private function process_single_coupon_redemption($coupon_code, $entry_id, $form_data, $form) {
+        try {
+            error_log("Gift Certificate Webhook: Processing coupon redemption - Code: {$coupon_code}");
+            
+            // Get the gift certificate
+            $gift_certificate = $this->database->get_gift_certificate_by_coupon_code($coupon_code);
+            
+            if (!$gift_certificate) {
+                error_log("Gift Certificate Webhook: Gift certificate not found for coupon code: {$coupon_code}");
+                return;
+            }
+            
+            if ($gift_certificate->status !== 'active') {
+                error_log("Gift Certificate Webhook: Gift certificate is not active - Code: {$coupon_code}, Status: {$gift_certificate->status}");
+                return;
+            }
+            
+            // Calculate the order total to determine how much to deduct
+            $order_total = $this->calculate_order_total($form_data);
+            
+            if ($order_total <= 0) {
+                error_log("Gift Certificate Webhook: Invalid order total: {$order_total}");
+                return;
+            }
+            
+            // Determine the amount to deduct (either the full order total or the remaining balance)
+            $amount_to_deduct = min($order_total, $gift_certificate->current_balance);
+            
+            if ($amount_to_deduct <= 0) {
+                error_log("Gift Certificate Webhook: No amount to deduct - Balance: {$gift_certificate->current_balance}, Order Total: {$order_total}");
+                return;
+            }
+            
+            // Update the gift certificate balance
+            $new_balance = $gift_certificate->current_balance - $amount_to_deduct;
+            $update_data = array('current_balance' => $new_balance);
+            
+            // If balance is now 0, mark as used
+            if ($new_balance <= 0) {
+                $update_data['status'] = 'used';
+            }
+            
+            $updated = $this->database->update_gift_certificate($gift_certificate->id, $update_data);
+            
+            if (!$updated) {
+                error_log("Gift Certificate Webhook: Failed to update gift certificate balance - ID: {$gift_certificate->id}");
+                return;
+            }
+            
+            // Record the transaction
+            $this->database->record_transaction(
+                $gift_certificate->id,
+                $amount_to_deduct,
+                null, // order_id
+                $entry_id
+            );
+            
+            error_log("Gift Certificate Webhook: Coupon redemption successful - Code: {$coupon_code}, Amount deducted: {$amount_to_deduct}, New balance: {$new_balance}");
+            
+        } catch (Exception $e) {
+            error_log("Gift Certificate Webhook: Single coupon redemption failed - Code: {$coupon_code}, Error: " . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Calculate the order total from form data
+     */
+    private function calculate_order_total($form_data) {
+        $total = 0;
+        
+        // Look for common payment/total fields
+        $total_fields = array('payment_input', 'total', 'amount', 'price', 'payment_amount');
+        
+        foreach ($total_fields as $field) {
+            if (isset($form_data[$field])) {
+                $value = floatval($form_data[$field]);
+                if ($value > 0) {
+                    $total = $value;
+                    break;
+                }
+            }
+        }
+        
+        // If no total found, try to calculate from quantity and price
+        if ($total <= 0) {
+            if (isset($form_data['item-quantity']) && isset($form_data['payment_input'])) {
+                $quantity = intval($form_data['item-quantity']);
+                $price = floatval($form_data['payment_input']);
+                $total = $quantity * $price;
+            }
+        }
+        
+        error_log("Gift Certificate Webhook: Calculated order total: {$total}");
+        return $total;
     }
     
     private function get_field_value($form_data, $field_name) {

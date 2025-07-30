@@ -141,11 +141,44 @@ if (!defined('ABSPATH')) {
 
 <script>
 function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(function() {
-        alert('<?php _e('Coupon code copied to clipboard!', 'gift-certificates-fluentforms'); ?>');
-    }, function(err) {
-        console.error('Could not copy text: ', err);
-    });
+    // Try modern clipboard API first
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+            alert('<?php _e('Coupon code copied to clipboard!', 'gift-certificates-fluentforms'); ?>');
+        }, function(err) {
+            console.error('Could not copy text: ', err);
+            fallbackCopyToClipboard(text);
+        });
+    } else {
+        // Fallback for older browsers
+        fallbackCopyToClipboard(text);
+    }
+}
+
+function fallbackCopyToClipboard(text) {
+    // Create a temporary textarea element
+    var textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-999999px";
+    textArea.style.top = "-999999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        var successful = document.execCommand('copy');
+        if (successful) {
+            alert('<?php _e('Coupon code copied to clipboard!', 'gift-certificates-fluentforms'); ?>');
+        } else {
+            alert('<?php _e('Failed to copy coupon code. Please copy manually: ', 'gift-certificates-fluentforms'); ?>' + text);
+        }
+    } catch (err) {
+        console.error('Fallback copy failed: ', err);
+        alert('<?php _e('Failed to copy coupon code. Please copy manually: ', 'gift-certificates-fluentforms'); ?>' + text);
+    }
+    
+    document.body.removeChild(textArea);
 }
 
 jQuery(document).ready(function($) {
