@@ -289,6 +289,9 @@ class GiftCertificateWebhook {
                 $entry_id
             );
             
+            // Update the Fluent Forms coupon amount to reflect the new balance
+            $this->update_fluent_forms_coupon_amount($coupon_code, $new_balance);
+            
             error_log("Gift Certificate Webhook: Coupon redemption successful - Code: {$coupon_code}, Amount deducted: {$amount_to_deduct}, New balance: {$new_balance}");
             
         } catch (Exception $e) {
@@ -326,6 +329,60 @@ class GiftCertificateWebhook {
         
         error_log("Gift Certificate Webhook: Calculated order total: {$total}");
         return $total;
+    }
+    
+    /**
+     * Update the Fluent Forms coupon amount to reflect the new gift certificate balance
+     */
+    private function update_fluent_forms_coupon_amount($coupon_code, $new_amount) {
+        // Get the coupon table name
+        $coupon_table_name = $this->get_coupon_table_name();
+        
+        // Check if coupon table exists
+        if (!$this->table_exists($coupon_table_name)) {
+            error_log("Gift Certificate Webhook: Coupon table '{$coupon_table_name}' does not exist - cannot update coupon amount");
+            return false;
+        }
+        
+        try {
+            // Get current coupon to update settings
+            $coupon = wpFluent()->table($coupon_table_name)
+                ->where('code', $coupon_code)
+                ->first();
+            
+            if (!$coupon) {
+                error_log("Gift Certificate Webhook: Coupon not found for update - Code: {$coupon_code}");
+                return false;
+            }
+            
+            // Update settings to reflect new amount
+            $settings = unserialize($coupon->settings);
+            if (is_array($settings)) {
+                // Update any amount-related settings if needed
+                $settings['success_message'] = '{coupon.code} - {coupon.amount}';
+            }
+            
+            // Update coupon amount and settings
+            $result = wpFluent()->table($coupon_table_name)
+                ->where('code', $coupon_code)
+                ->update(array(
+                    'amount' => $new_amount,
+                    'settings' => serialize($settings),
+                    'updated_at' => current_time('mysql')
+                ));
+            
+            if ($result) {
+                error_log("Gift Certificate Webhook: Fluent Forms coupon amount updated successfully - Code: {$coupon_code}, New Amount: {$new_amount}");
+                return true;
+            } else {
+                error_log("Gift Certificate Webhook: Failed to update Fluent Forms coupon amount - Code: {$coupon_code}");
+                return false;
+            }
+            
+        } catch (Exception $e) {
+            error_log("Gift Certificate Webhook: Exception updating Fluent Forms coupon amount: " . $e->getMessage());
+            return false;
+        }
     }
     
     private function get_field_value($form_data, $field_name) {
