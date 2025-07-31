@@ -134,7 +134,7 @@ class GiftCertificateAdmin {
     
     public function dashboard_page() {
         $stats = $this->database->get_stats();
-        $recent_certificates = $this->database->get_gift_certificates(array('limit' => 5));
+        $recent_certificates = $this->database->get_gift_certificates(array('limit' => 5, 'status' => ''));
         $pending_deliveries = $this->database->get_pending_deliveries();
         
         include GIFT_CERTIFICATES_FF_PLUGIN_DIR . 'admin/views/dashboard.php';
@@ -471,7 +471,8 @@ class GiftCertificateAdmin {
             'recipient_name_field_name' => __('Recipient Name Field', 'gift-certificates-fluentforms'),
             'sender_name_field_name' => __('Sender Name Field', 'gift-certificates-fluentforms'),
             'message_field_name' => __('Message Field', 'gift-certificates-fluentforms'),
-            'delivery_date_field_name' => __('Delivery Date Field', 'gift-certificates-fluentforms')
+            'delivery_date_field_name' => __('Delivery Date Field', 'gift-certificates-fluentforms'),
+            'design_field_name' => __('Design Field', 'gift-certificates-fluentforms')
         );
         
         foreach ($field_names as $field_key => $field_label) {
@@ -534,7 +535,7 @@ class GiftCertificateAdmin {
         // Sanitize field names
         $field_names = array(
             'amount_field_name', 'recipient_email_field_name', 'recipient_name_field_name',
-            'sender_name_field_name', 'message_field_name', 'delivery_date_field_name'
+            'sender_name_field_name', 'message_field_name', 'delivery_date_field_name', 'design_field_name'
         );
         
         foreach ($field_names as $field) {
