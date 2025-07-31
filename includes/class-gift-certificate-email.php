@@ -186,7 +186,7 @@ class GiftCertificateEmail {
         return "Dear {recipient_name},\n\n" .
                "You have received a gift certificate from {sender_name}!\n\n" .
                "Gift Certificate Details:\n" .
-               "Amount: {$amount}\n" .
+               "Amount: \${amount}\n" .
                "Code: {coupon_code}\n\n" .
                "Message from {sender_name}:\n{message}\n\n" .
                "You can use this gift certificate on {site_name} at {site_url}. To redeem, enter the code in the coupon code field at checkout.\n\n" .
@@ -199,7 +199,7 @@ class GiftCertificateEmail {
         return "Dear {recipient_name},\n\n" .
                "You have received a beautiful gift certificate from {sender_name}!\n\n" .
                "Gift Certificate Details:\n" .
-               "Amount: {$amount}\n" .
+               "Amount: \${amount}\n" .
                "Code: {coupon_code}\n\n" .
                "Message from {sender_name}:\n{message}\n\n" .
                "You can use this gift certificate on our website. Simply enter the coupon code during checkout to apply your discount.\n\n" .
@@ -385,7 +385,7 @@ body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-si
 .email-container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
 
 /* Header */
-.header { background-color: #4a90e2; color: #ffffff; padding: 30px 20px; text-align: center; }
+.header { background-color: #6c757d; color: #ffffff; padding: 30px 20px; text-align: center; }
 .header h1 { margin: 0; font-size: 28px; font-weight: bold; }
 
 /* Content */
@@ -393,20 +393,20 @@ body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-si
 .content p { margin: 0 0 15px 0; }
 
 /* Gift details */
-.gift-details { background-color: #f8f9fa; padding: 20px; margin: 20px 0; border-left: 4px solid #4a90e2; }
+.gift-details { background-color: #f8f9fa; padding: 20px; margin: 20px 0; border-left: 4px solid #6c757d; }
 .gift-details h3 { margin: 0 0 15px 0; color: #333333; }
 
 /* Amount */
-.amount { font-size: 32px; font-weight: bold; color: #4a90e2; text-align: center; margin: 15px 0; }
+.amount { font-size: 32px; font-weight: bold; color: #6c757d; text-align: center; margin: 15px 0; }
 
 /* Coupon code */
-.coupon-code { font-size: 24px; font-weight: bold; color: #4a90e2; text-align: center; padding: 15px; background-color: #e3f2fd; margin: 15px 0; }
+.coupon-code { font-size: 24px; font-weight: bold; color: #6c757d; text-align: center; padding: 15px; background-color: #e9ecef; margin: 15px 0; }
 
 /* Message */
 .message { font-style: italic; margin: 20px 0; padding: 20px; background-color: #fff3e0; border-left: 4px solid #ff9800; }
 
 /* Button */
-.button { display: inline-block; padding: 12px 24px; background-color: #4a90e2; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; }
+.button { display: inline-block; padding: 12px 24px; background-color: #6c757d; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; }
 
 /* Footer */
 .footer { text-align: center; margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-top: 1px solid #dee2e6; }
