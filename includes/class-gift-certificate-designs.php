@@ -79,7 +79,7 @@ class GiftCertificateDesigns {
             <h1><?php _e('Gift Certificate Design Templates', 'gift-certificates-fluentforms'); ?></h1>
             
             <div class="notice notice-info">
-                <p><?php _e('Create and manage gift certificate design templates. Each design can have its own email template and image. The default design can be edited but not deleted.', 'gift-certificates-fluentforms'); ?></p>
+                <p><?php _e('Create and manage gift certificate design templates. Each design can have its own email template content, custom CSS, and image. The default design can be edited but not deleted.', 'gift-certificates-fluentforms'); ?></p>
             </div>
             
             <div class="gift-certificate-designs-container">
@@ -163,16 +163,37 @@ class GiftCertificateDesigns {
                             </tr>
                             
                             <tr>
-                                <th scope="row"><?php _e('Email Template', 'gift-certificates-fluentforms'); ?></th>
+                                <th scope="row"><?php _e('Email Format', 'gift-certificates-fluentforms'); ?></th>
                                 <td>
                                     <select id="email-format" name="email_format">
                                         <option value="html"><?php _e('HTML', 'gift-certificates-fluentforms'); ?></option>
                                         <option value="plain"><?php _e('Plain Text', 'gift-certificates-fluentforms'); ?></option>
                                     </select>
-                                    <br><br>
-                                    <textarea id="email-template" name="email_template" rows="15" cols="80" class="large-text"></textarea>
                                     <p class="description">
-                                        <?php _e('Available placeholders: {recipient_name}, {sender_name}, {amount}, {coupon_code}, {message}, {site_name}, {site_url}, {balance_check_url}', 'gift-certificates-fluentforms'); ?>
+                                        <?php _e('Choose whether to send HTML or plain text emails.', 'gift-certificates-fluentforms'); ?>
+                                    </p>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <th scope="row"><?php _e('Email Template Content', 'gift-certificates-fluentforms'); ?></th>
+                                <td>
+                                    <textarea id="email-template" name="email_template" rows="12" cols="80" class="large-text"></textarea>
+                                    <p class="description">
+                                        <?php _e('Enter the main content of your email template. Available placeholders: {recipient_name}, {sender_name}, {amount}, {coupon_code}, {message}, {site_name}, {site_url}, {balance_check_url}, {design_image}', 'gift-certificates-fluentforms'); ?>
+                                    </p>
+                                    <p class="description">
+                                        <?php _e('For HTML emails, you can use basic HTML tags like &lt;p&gt;, &lt;strong&gt;, &lt;em&gt;, &lt;br&gt;, &lt;table&gt;, etc. The email wrapper and CSS will be added automatically when sending.', 'gift-certificates-fluentforms'); ?>
+                                    </p>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <th scope="row"><?php _e('Custom CSS (HTML emails only)', 'gift-certificates-fluentforms'); ?></th>
+                                <td>
+                                    <textarea id="custom-css" name="custom_css" rows="8" cols="80" class="large-text code"></textarea>
+                                    <p class="description">
+                                        <?php _e('Add custom CSS styles for your email template. These styles will be included in the email header. Leave empty to use default styles.', 'gift-certificates-fluentforms'); ?>
                                     </p>
                                 </td>
                             </tr>
@@ -214,6 +235,7 @@ class GiftCertificateDesigns {
             'image_id' => intval($_POST['design_image_id']),
             'image_url' => esc_url_raw($_POST['design_image_url']),
             'email_template' => $this->sanitize_email_template($_POST['email_template']),
+            'custom_css' => sanitize_textarea_field($_POST['custom_css']),
             'email_format' => sanitize_text_field($_POST['email_format']),
             'active' => isset($_POST['design_active']) ? 1 : 0,
             'created_at' => current_time('mysql')
@@ -229,8 +251,8 @@ class GiftCertificateDesigns {
     }
     
     /**
-     * Sanitize email template while preserving HTML structure
-     * This function allows email-specific HTML while removing potentially dangerous content
+     * Sanitize email template content
+     * This function allows basic HTML tags for email content while removing potentially dangerous content
      */
     private function sanitize_email_template($template) {
         if (empty($template)) {
@@ -240,45 +262,8 @@ class GiftCertificateDesigns {
         // Debug: Log the original template
         error_log('Gift Certificate: Original template length: ' . strlen($template));
         
-        // Allow specific HTML tags and attributes for email templates
+        // Allow basic HTML tags for email content
         $allowed_html = array(
-            'html' => array(
-                'xmlns' => array(),
-                'lang' => array()
-            ),
-            'head' => array(),
-            'meta' => array(
-                'http-equiv' => array(),
-                'content' => array(),
-                'name' => array(),
-                'charset' => array()
-            ),
-            'title' => array(),
-            'style' => array(
-                'type' => array()
-            ),
-            'body' => array(
-                'style' => array()
-            ),
-            'table' => array(
-                'role' => array(),
-                'cellspacing' => array(),
-                'cellpadding' => array(),
-                'border' => array(),
-                'width' => array(),
-                'align' => array(),
-                'style' => array(),
-                'class' => array()
-            ),
-            'tr' => array(
-                'style' => array()
-            ),
-            'td' => array(
-                'style' => array(),
-                'class' => array(),
-                'align' => array(),
-                'width' => array()
-            ),
             'div' => array(
                 'style' => array(),
                 'class' => array()
@@ -313,6 +298,25 @@ class GiftCertificateDesigns {
             'span' => array(
                 'style' => array(),
                 'class' => array()
+            ),
+            'table' => array(
+                'role' => array(),
+                'cellspacing' => array(),
+                'cellpadding' => array(),
+                'border' => array(),
+                'width' => array(),
+                'align' => array(),
+                'style' => array(),
+                'class' => array()
+            ),
+            'tr' => array(
+                'style' => array()
+            ),
+            'td' => array(
+                'style' => array(),
+                'class' => array(),
+                'align' => array(),
+                'width' => array()
             )
         );
         
@@ -321,17 +325,6 @@ class GiftCertificateDesigns {
         
         // Debug: Log after wp_kses
         error_log('Gift Certificate: After wp_kses length: ' . strlen($sanitized));
-        
-        // Preserve conditional comments for Outlook
-        $sanitized = preg_replace('/&lt;!--\[if mso\]&gt;--&gt;/', '<!--[if mso]>', $sanitized);
-        $sanitized = preg_replace('/&lt;!\[endif\]--&gt;/', '<![endif]-->', $sanitized);
-        
-        // Preserve other common email-specific entities
-        $sanitized = str_replace(
-            array('&lt;', '&gt;', '&amp;', '&quot;', '&#039;'),
-            array('<', '>', '&', '"', "'"),
-            $sanitized
-        );
         
         // Debug: Log final result
         error_log('Gift Certificate: Final sanitized length: ' . strlen($sanitized));
@@ -372,6 +365,10 @@ class GiftCertificateDesigns {
             if (isset($design['email_template'])) {
                 $designs[$design_id]['email_template'] = $this->decode_email_template($design['email_template']);
             }
+            // Ensure custom_css field exists
+            if (!isset($design['custom_css'])) {
+                $designs[$design_id]['custom_css'] = '';
+            }
         }
         
         return $designs;
@@ -387,6 +384,10 @@ class GiftCertificateDesigns {
                 if (isset($design['email_template'])) {
                     $design['email_template'] = $this->decode_email_template($design['email_template']);
                 }
+                // Ensure custom_css field exists
+                if (!isset($design['custom_css'])) {
+                    $design['custom_css'] = '';
+                }
                 return $design;
             }
             return $this->get_default_design();
@@ -398,6 +399,10 @@ class GiftCertificateDesigns {
             // Decode the email template
             if (isset($design['email_template'])) {
                 $design['email_template'] = $this->decode_email_template($design['email_template']);
+            }
+            // Ensure custom_css field exists
+            if (!isset($design['custom_css'])) {
+                $design['custom_css'] = '';
             }
             return $design;
         }
@@ -419,6 +424,7 @@ class GiftCertificateDesigns {
             'image_id' => 0,
             'image_url' => $default_image_url,
             'email_template' => $this->get_default_email_template(),
+            'custom_css' => $this->get_default_css_template(),
             'email_format' => 'html',
             'active' => 1,
             'created_at' => current_time('mysql')
@@ -429,7 +435,7 @@ class GiftCertificateDesigns {
         return "Dear {recipient_name},\n\n" .
                "You have received a beautiful gift certificate from {sender_name}!\n\n" .
                "Gift Certificate Details:\n" .
-               "Amount: ${amount}\n" .
+               "Amount: {$amount}\n" .
                "Code: {coupon_code}\n\n" .
                "Message from {sender_name}:\n{message}\n\n" .
                "You can use this gift certificate on our website. Simply enter the coupon code during checkout to apply your discount.\n\n" .
@@ -437,6 +443,56 @@ class GiftCertificateDesigns {
                "Thank you for choosing {site_name}!\n\n" .
                "{site_name}\n" .
                "{site_url}";
+    }
+    
+    private function get_default_css_template() {
+        return "/* Reset styles */
+body, table, td, p, a, li, blockquote { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+
+/* Base styles */
+body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.6; color: #333333; background-color: #f4f4f4; }
+
+/* Container */
+.email-container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
+
+/* Header */
+.header { background-color: #4a90e2; color: #ffffff; padding: 30px 20px; text-align: center; }
+.header h1 { margin: 0; font-size: 28px; font-weight: bold; }
+
+/* Content */
+.content { padding: 30px 20px; }
+.content p { margin: 0 0 15px 0; }
+
+/* Gift details */
+.gift-details { background-color: #f8f9fa; padding: 20px; margin: 20px 0; border-left: 4px solid #4a90e2; }
+.gift-details h3 { margin: 0 0 15px 0; color: #333333; }
+
+/* Amount */
+.amount { font-size: 32px; font-weight: bold; color: #4a90e2; text-align: center; margin: 15px 0; }
+
+/* Coupon code */
+.coupon-code { font-size: 24px; font-weight: bold; color: #4a90e2; text-align: center; padding: 15px; background-color: #e3f2fd; margin: 15px 0; }
+
+/* Message */
+.message { font-style: italic; margin: 20px 0; padding: 20px; background-color: #fff3e0; border-left: 4px solid #ff9800; }
+
+/* Button */
+.button { display: inline-block; padding: 12px 24px; background-color: #4a90e2; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; }
+
+/* Footer */
+.footer { text-align: center; margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-top: 1px solid #dee2e6; }
+
+/* Responsive */
+@media only screen and (max-width: 600px) {
+    .email-container { width: 100% !important; }
+    .content { padding: 20px 15px !important; }
+    .header { padding: 20px 15px !important; }
+    .header h1 { font-size: 24px !important; }
+    .amount { font-size: 28px !important; }
+    .coupon-code { font-size: 20px !important; }
+}";
     }
     
     public function save_design($design_data) {
@@ -556,124 +612,27 @@ class GiftCertificateDesigns {
     }
     
     private function get_default_email_template() {
-        return '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gift Certificate</title>
-    <!--[if mso]>
-    <noscript>
-        <xml>
-            <o:OfficeDocumentSettings>
-                <o:PixelsPerInch>96</o:PixelsPerInch>
-            </o:OfficeDocumentSettings>
-        </xml>
-    </noscript>
-    <![endif]-->
-    <style type="text/css">
-        /* Reset styles */
-        body, table, td, p, a, li, blockquote { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
-        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
-        img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
-        
-        /* Base styles */
-        body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.6; color: #333333; background-color: #f4f4f4; }
-        
-        /* Container */
-        .email-container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
-        
-        /* Header */
-        .header { background-color: #4a90e2; color: #ffffff; padding: 30px 20px; text-align: center; }
-        .header h1 { margin: 0; font-size: 28px; font-weight: bold; }
-        
-        /* Content */
-        .content { padding: 30px 20px; }
-        .content p { margin: 0 0 15px 0; }
-        
-        /* Gift details */
-        .gift-details { background-color: #f8f9fa; padding: 20px; margin: 20px 0; border-left: 4px solid #4a90e2; }
-        .gift-details h3 { margin: 0 0 15px 0; color: #333333; }
-        
-        /* Amount */
-        .amount { font-size: 32px; font-weight: bold; color: #4a90e2; text-align: center; margin: 15px 0; }
-        
-        /* Coupon code */
-        .coupon-code { font-size: 24px; font-weight: bold; color: #4a90e2; text-align: center; padding: 15px; background-color: #e3f2fd; margin: 15px 0; }
-        
-        /* Message */
-        .message { font-style: italic; margin: 20px 0; padding: 20px; background-color: #fff3e0; border-left: 4px solid #ff9800; }
-        
-        /* Button */
-        .button { display: inline-block; padding: 12px 24px; background-color: #4a90e2; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; }
-        
-        /* Footer */
-        .footer { text-align: center; margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-top: 1px solid #dee2e6; }
-        
-        /* Responsive */
-        @media only screen and (max-width: 600px) {
-            .email-container { width: 100% !important; }
-            .content { padding: 20px 15px !important; }
-            .header { padding: 20px 15px !important; }
-            .header h1 { font-size: 24px !important; }
-            .amount { font-size: 28px !important; }
-            .coupon-code { font-size: 20px !important; }
-        }
-    </style>
-</head>
-<body>
-    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-        <tr>
-            <td align="center" style="background-color: #f4f4f4; padding: 20px 0;">
-                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="email-container">
-                    <tr>
-                        <td class="header">
-                            <h1>🎁 Gift Certificate</h1>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="content">
-                            <p>Dear <strong>{recipient_name}</strong>,</p>
-                            <p>You have received a beautiful gift certificate from <strong>{sender_name}</strong>!</p>
-                            
-                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" class="gift-details">
-                                <tr>
-                                    <td>
-                                        <h3>Gift Certificate Details:</h3>
-                                        <div class="amount">${amount}</div>
-                                        <div class="coupon-code">{coupon_code}</div>
-                                    </td>
-                                </tr>
-                            </table>
-                            
-                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" class="message">
-                                <tr>
-                                    <td>
-                                        <strong>Message from {sender_name}:</strong><br>
-                                        {message}
-                                    </td>
-                                </tr>
-                            </table>
-                            
-                            <p>You can use this gift certificate on our website. Simply enter the coupon code during checkout to apply your discount.</p>
-                            
-                            <p style="text-align: center;">
-                                <a href="{balance_check_url}" class="button">Check Balance</a>
-                            </p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="footer">
-                            <p>Thank you for choosing {site_name}!</p>
-                            <p><strong>{site_name}</strong></p>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
-</body>
-</html>';
+        return '<p>Dear <strong>{recipient_name}</strong>,</p>
+<p>You have received a beautiful gift certificate from <strong>{sender_name}</strong>!</p>
+
+<div class="gift-details">
+    <h3>Gift Certificate Details:</h3>
+    <div class="amount">{$amount}</div>
+    <div class="coupon-code">{coupon_code}</div>
+</div>
+
+<div class="message">
+    <strong>Message from {sender_name}:</strong><br>
+    {message}
+</div>
+
+<p>You can use this gift certificate on our website. Simply enter the coupon code during checkout to apply your discount.</p>
+
+<p style="text-align: center;">
+    <a href="{balance_check_url}" class="button">Check Balance</a>
+</p>
+
+<p>Thank you for choosing {site_name}!</p>';
     }
 
     /**

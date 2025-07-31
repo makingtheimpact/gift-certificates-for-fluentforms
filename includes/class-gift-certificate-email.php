@@ -186,7 +186,7 @@ class GiftCertificateEmail {
         return "Dear {recipient_name},\n\n" .
                "You have received a gift certificate from {sender_name}!\n\n" .
                "Gift Certificate Details:\n" .
-               "Amount: {amount}\n" .
+               "Amount: {$amount}\n" .
                "Code: {coupon_code}\n\n" .
                "Message from {sender_name}:\n{message}\n\n" .
                "You can use this gift certificate on {site_name} at {site_url}. To redeem, enter the code in the coupon code field at checkout.\n\n" .
@@ -199,7 +199,7 @@ class GiftCertificateEmail {
         return "Dear {recipient_name},\n\n" .
                "You have received a beautiful gift certificate from {sender_name}!\n\n" .
                "Gift Certificate Details:\n" .
-               "Amount: ${amount}\n" .
+               "Amount: {$amount}\n" .
                "Code: {coupon_code}\n\n" .
                "Message from {sender_name}:\n{message}\n\n" .
                "You can use this gift certificate on our website. Simply enter the coupon code during checkout to apply your discount.\n\n" .
@@ -242,6 +242,13 @@ class GiftCertificateEmail {
     }
     
     private function convert_to_html($gift_certificate_id, $message, $design) {
+        // Get the gift certificate data
+        $gift_certificate = $this->database->get_gift_certificate($gift_certificate_id);
+        
+        // Get custom CSS from design, or use default
+        $custom_css = !empty($design['custom_css']) ? $design['custom_css'] : $this->get_default_css();
+        
+        // Build the HTML email wrapper
         $html = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -258,53 +265,7 @@ class GiftCertificateEmail {
     </noscript>
     <![endif]-->
     <style type="text/css">
-        /* Reset styles */
-        body, table, td, p, a, li, blockquote { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
-        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
-        img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
-        
-        /* Base styles */
-        body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.6; color: #333333; background-color: #f4f4f4; }
-        
-        /* Container */
-        .email-container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
-        
-        /* Header */
-        .header { background-color: #4a90e2; color: #ffffff; padding: 30px 20px; text-align: center; }
-        .header h1 { margin: 0; font-size: 28px; font-weight: bold; }
-        
-        /* Content */
-        .content { padding: 30px 20px; }
-        .content p { margin: 0 0 15px 0; }
-        
-        /* Gift details */
-        .gift-details { background-color: #f8f9fa; padding: 20px; margin: 20px 0; border-left: 4px solid #4a90e2; }
-        .gift-details h3 { margin: 0 0 15px 0; color: #333333; }
-        
-        /* Amount */
-        .amount { font-size: 32px; font-weight: bold; color: #4a90e2; text-align: center; margin: 15px 0; }
-        
-        /* Coupon code */
-        .coupon-code { font-size: 24px; font-weight: bold; color: #4a90e2; text-align: center; padding: 15px; background-color: #e3f2fd; margin: 15px 0; }
-        
-        /* Message */
-        .message { font-style: italic; margin: 20px 0; padding: 20px; background-color: #fff3e0; border-left: 4px solid #ff9800; }
-        
-        /* Button */
-        .button { display: inline-block; padding: 12px 24px; background-color: #4a90e2; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; }
-        
-        /* Footer */
-        .footer { text-align: center; margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-top: 1px solid #dee2e6; }
-        
-        /* Responsive */
-        @media only screen and (max-width: 600px) {
-            .email-container { width: 100% !important; }
-            .content { padding: 20px 15px !important; }
-            .header { padding: 20px 15px !important; }
-            .header h1 { font-size: 24px !important; }
-            .amount { font-size: 28px !important; }
-            .coupon-code { font-size: 20px !important; }
-        }
+' . $custom_css . '
     </style>
 </head>
 <body>
@@ -314,39 +275,13 @@ class GiftCertificateEmail {
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="email-container">
                     <tr>
                         <td class="header">
-                            <h1>🎁 A Gift for You</h1>
+                            <h1>🎁 Gift Certificate</h1>
                         </td>
                     </tr>
                     <tr>
                         <td class="content">
                             {design_image}
-                            <p>Dear <strong>{recipient_name}</strong>,</p>
-                            <p>You have received a beautiful gift certificate from <strong>{sender_name}</strong>!</p>
-                            
-                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" class="gift-details">
-                                <tr>
-                                    <td>
-                                        <h3>Gift Certificate Details:</h3>
-                                        <div class="amount">${amount}</div>
-                                        <div class="coupon-code">{coupon_code}</div>
-                                    </td>
-                                </tr>
-                            </table>
-                            
-                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" class="message">
-                                <tr>
-                                    <td>
-                                        <strong>Message from {sender_name}:</strong><br>
-                                        {message}
-                                    </td>
-                                </tr>
-                            </table>
-                            
-                            <p>You can use this gift certificate on our website. Simply enter the coupon code during checkout to apply your discount.</p>
-                            
-                            <p style="text-align: center;">
-                                <a href="{balance_check_url}" class="button">Check Balance</a>
-                            </p>
+                            ' . $message . '
                         </td>
                     </tr>
                     <tr>
@@ -362,9 +297,6 @@ class GiftCertificateEmail {
 </body>
 </html>';
         
-        // Replace placeholders in HTML template
-        $gift_certificate = $this->database->get_gift_certificate($gift_certificate_id);
-        
         // Add design image if available
         $design_image_html = '';
         if (!empty($design['image_url'])) {
@@ -377,25 +309,14 @@ class GiftCertificateEmail {
             </table>';
         }
         
+        // Replace remaining placeholders
         return str_replace(
             array(
-                '{recipient_name}',
-                '{sender_name}',
-                '{amount}',
-                '{coupon_code}',
-                '{message}',
                 '{site_name}',
-                '{balance_check_url}',
                 '{design_image}'
             ),
             array(
-                $gift_certificate->recipient_name,
-                $gift_certificate->sender_name,
-                number_format($gift_certificate->original_amount, 2),
-                $gift_certificate->coupon_code,
-                $gift_certificate->message,
                 get_bloginfo('name'),
-                $this->get_balance_check_url(),
                 $design_image_html
             ),
             $html
@@ -449,6 +370,56 @@ class GiftCertificateEmail {
         
         // Fallback to home page with balance check parameter
         return add_query_arg('gift_certificate_balance', '1', home_url());
+    }
+    
+    private function get_default_css() {
+        return "/* Reset styles */
+body, table, td, p, a, li, blockquote { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+
+/* Base styles */
+body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.6; color: #333333; background-color: #f4f4f4; }
+
+/* Container */
+.email-container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
+
+/* Header */
+.header { background-color: #4a90e2; color: #ffffff; padding: 30px 20px; text-align: center; }
+.header h1 { margin: 0; font-size: 28px; font-weight: bold; }
+
+/* Content */
+.content { padding: 30px 20px; }
+.content p { margin: 0 0 15px 0; }
+
+/* Gift details */
+.gift-details { background-color: #f8f9fa; padding: 20px; margin: 20px 0; border-left: 4px solid #4a90e2; }
+.gift-details h3 { margin: 0 0 15px 0; color: #333333; }
+
+/* Amount */
+.amount { font-size: 32px; font-weight: bold; color: #4a90e2; text-align: center; margin: 15px 0; }
+
+/* Coupon code */
+.coupon-code { font-size: 24px; font-weight: bold; color: #4a90e2; text-align: center; padding: 15px; background-color: #e3f2fd; margin: 15px 0; }
+
+/* Message */
+.message { font-style: italic; margin: 20px 0; padding: 20px; background-color: #fff3e0; border-left: 4px solid #ff9800; }
+
+/* Button */
+.button { display: inline-block; padding: 12px 24px; background-color: #4a90e2; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; }
+
+/* Footer */
+.footer { text-align: center; margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-top: 1px solid #dee2e6; }
+
+/* Responsive */
+@media only screen and (max-width: 600px) {
+    .email-container { width: 100% !important; }
+    .content { padding: 20px 15px !important; }
+    .header { padding: 20px 15px !important; }
+    .header h1 { font-size: 24px !important; }
+    .amount { font-size: 28px !important; }
+    .coupon-code { font-size: 20px !important; }
+}";
     }
     
     public function send_test_email($email_address) {
