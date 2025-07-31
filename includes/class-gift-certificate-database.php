@@ -16,6 +16,9 @@ class GiftCertificateDatabase {
         global $wpdb;
         $this->gift_certificates_table = $wpdb->prefix . 'gift_certificates';
         $this->transactions_table = $wpdb->prefix . 'gift_certificate_transactions';
+
+        // Ensure required columns exist
+        $this->maybe_add_design_id_column();
     }
     
     public function create_tables() {
@@ -94,7 +97,7 @@ class GiftCertificateDatabase {
         $result = $wpdb->insert(
             $this->gift_certificates_table,
             $data,
-            array('%s', '%f', '%f', '%s', '%s', '%s', '%s', '%s', '%s')
+            array('%s', '%f', '%f', '%s', '%s', '%s', '%s', '%s', '%s', '%s')
         );
         
         if ($result === false) {
@@ -371,4 +374,25 @@ class GiftCertificateDatabase {
             ");
         }
     }
-} 
+
+    /**
+     * Add the design_id column to the gift certificates table if it does not already exist
+     */
+    private function maybe_add_design_id_column() {
+        global $wpdb;
+
+        $column = $wpdb->get_results(
+            $wpdb->prepare(
+                "SHOW COLUMNS FROM {$this->gift_certificates_table} LIKE %s",
+                'design_id'
+            )
+        );
+
+        if (empty($column)) {
+            $wpdb->query(
+                "ALTER TABLE {$this->gift_certificates_table} ADD COLUMN design_id varchar(50) DEFAULT 'default' AFTER delivery_date"
+            );
+        }
+    }
+}
+
