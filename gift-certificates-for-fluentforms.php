@@ -183,6 +183,10 @@ class GiftCertificatesForFluentForms {
     }
     
     public function deactivate() {
+        // Clear scheduled hooks to prevent orphaned events
+        wp_clear_scheduled_hook('gift_certificate_daily_delivery_check');
+        wp_clear_scheduled_hook('gift_certificate_scheduled_delivery');
+
         // Flush rewrite rules
         flush_rewrite_rules();
     }
