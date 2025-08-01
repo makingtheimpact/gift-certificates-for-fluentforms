@@ -22,6 +22,7 @@ class GiftCertificateDesigns {
         add_action('wp_ajax_delete_gift_certificate_design', array($this, 'delete_design_ajax'));
         add_action('wp_ajax_get_gift_certificate_design', array($this, 'get_design_ajax'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
+        add_action('wp_ajax_send_test_email', array($this, 'send_test_email_ajax'));
         
         // Fix corrupted templates on plugin load (only once)
         if (!get_option('gift_certificate_templates_fixed', false)) {
@@ -81,10 +82,10 @@ class GiftCertificateDesigns {
             <div class="notice notice-info">
                 <p><?php _e('Create and manage gift certificate design templates. Each design can have its own email template content, custom CSS, and image. The default design can be edited but not deleted.', 'gift-certificates-fluentforms'); ?></p>
             </div>
-            
-            <div class="gift-certificate-designs-container">
-                <div class="designs-list">
-                    <h2><?php _e('Available Designs', 'gift-certificates-fluentforms'); ?></h2>
+
+            <h2><?php _e('Available Designs', 'gift-certificates-fluentforms'); ?></h2>
+            <div class="gift-certificate-designs-container">                
+                <div class="designs-list">                    
                     
                     <div class="design-item default-design" data-design-id="default">
                         <h3><?php _e('Default Design', 'gift-certificates-fluentforms'); ?></h3>
@@ -101,6 +102,9 @@ class GiftCertificateDesigns {
                             <button type="button" class="button edit-design" data-design-id="default">
                                 <?php _e('Edit', 'gift-certificates-fluentforms'); ?>
                             </button>
+                            <button type="button" class="button send-test-email" data-design-id="default">
+                                <?php _e('Send Test Email', 'gift-certificates-fluentforms'); ?>
+                            </button>                            
                         </div>
                     </div>
                     
@@ -120,6 +124,9 @@ class GiftCertificateDesigns {
                             <button type="button" class="button edit-design" data-design-id="<?php echo esc_attr($design['id']); ?>">
                                 <?php _e('Edit', 'gift-certificates-fluentforms'); ?>
                             </button>
+                            <button type="button" class="button send-test-email" data-design-id="default">
+                                <?php _e('Send Test Email', 'gift-certificates-fluentforms'); ?>
+                            </button> 
                             <button type="button" class="button button-link-delete delete-design" data-design-id="<?php echo esc_attr($design['id']); ?>">
                                 <?php _e('Delete', 'gift-certificates-fluentforms'); ?>
                             </button>
@@ -662,5 +669,49 @@ body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-si
         }
         
         return false;
+    }
+
+    public function send_test_email_ajax() {
+        // Check nonce
+        if (!wp_verify_nonce($_POST['nonce'], 'gift_certificate_designs_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+        }
+
+        // Check user permissions
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Insufficient permissions'));
+        }
+
+        // Sanitize input
+        $email = sanitize_email($_POST['email']);
+        $design_id = sanitize_text_field($_POST['design_id']);
+
+        if (!is_email($email)) {
+            wp_send_json_error(array('message' => 'Invalid email address'));
+        }
+
+        // Load the email sending class
+        $email_sender = new GiftCertificateEmail();
+
+        // Prepare demo data for the email
+        $demo_data = array(
+            'recipient_name' => 'Test Recipient',
+            'sender_name' => 'Test Sender',
+            'amount' => '100.00',
+            'coupon_code' => 'TESTCODE',
+            'message' => 'This is a demo message.',
+            'site_name' => get_bloginfo('name'),
+            'site_url' => home_url(),
+            'balance_check_url' => '#'
+        );
+
+        // Call the actual send function with simulated data
+        $sent = $email_sender->send_certificate_email($email, $demo_data);
+
+        if ($sent) {
+            wp_send_json_success(array('message' => 'Test email sent successfully.'));
+        } else {
+            wp_send_json_error(array('message' => 'Failed to send test email.'));
+        }
     }
 } 

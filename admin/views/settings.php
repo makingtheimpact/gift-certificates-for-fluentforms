@@ -358,41 +358,6 @@ $settings = get_option('gift_certificates_ff_settings', array());
         <?php submit_button(); ?>
     </form>
     
-    <div class="gift-certificate-debug-section">
-        <h3><?php _e('Debug Information', 'gift-certificates-fluentforms'); ?></h3>
-        <p><?php _e('Use this section to test and debug the gift certificate functionality.', 'gift-certificates-fluentforms'); ?></p>
-        
-        <table class="form-table">
-            <tr>
-                <th scope="row"><?php _e('Test Webhook', 'gift-certificates-fluentforms'); ?></th>
-                <td>
-                    <button type="button" id="test-webhook" class="button"><?php _e('Test Webhook Connection', 'gift-certificates-fluentforms'); ?></button>
-                    <p class="description"><?php _e('Click this button to test if the webhook is properly connected to Fluent Forms.', 'gift-certificates-fluentforms'); ?></p>
-                    <div id="webhook-test-result"></div>
-                </td>
-            </tr>
-            
-            <tr>
-                <th scope="row"><?php _e('Form Field Debug', 'gift-certificates-fluentforms'); ?></th>
-                <td>
-                    <button type="button" id="debug-form-fields" class="button"><?php _e('Debug Form Fields', 'gift-certificates-fluentforms'); ?></button>
-                    <p class="description"><?php _e('Click this button to see the actual field names from your selected form.', 'gift-certificates-fluentforms'); ?></p>
-                    <div id="form-fields-debug"></div>
-                </td>
-            </tr>
-            
-            <tr>
-                <th scope="row"><?php _e('Test Email', 'gift-certificates-fluentforms'); ?></th>
-                <td>
-                    <input type="email" id="test-email-address" placeholder="Enter email address to test" style="width: 300px;">
-                    <button type="button" id="test-email" class="button"><?php _e('Send Test Email', 'gift-certificates-fluentforms'); ?></button>
-                    <p class="description"><?php _e('Test if email sending is working with your current configuration.', 'gift-certificates-fluentforms'); ?></p>
-                    <div id="test-email-result"></div>
-                </td>
-            </tr>
-        </table>
-    </div>
-    
     <div class="gift-certificate-settings-help">
         <h3><?php _e('Field Mapping Instructions', 'gift-certificates-fluentforms'); ?></h3>
         <p><?php _e('Enter the exact field names from your Fluent Forms form. You can find these in the form builder under each field\'s settings.', 'gift-certificates-fluentforms'); ?></p>

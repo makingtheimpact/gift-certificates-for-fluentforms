@@ -6,10 +6,21 @@ if (!defined('ABSPATH')) {
 
 <div class="wrap">
     <h1><?php _e('How to Use Gift Certificates for Fluent Forms', 'gift-certificates-fluentforms'); ?></h1>
+
+    <!-- Quick Links -->
+    <div class="quick-links">
+        <button class="button"><a href="#setup-instructions"><?php _e('Setup Instructions', 'gift-certificates-fluentforms'); ?></a></button>
+        <button class="button"><a href="#how-it-works"><?php _e('How It Works', 'gift-certificates-fluentforms'); ?></a></button>
+        <button class="button"><a href="#balance-checking"><?php _e('Balance Checking', 'gift-certificates-fluentforms'); ?></a></button>
+        <button class="button"><a href="#design-selection"><?php _e('Design Selection', 'gift-certificates-fluentforms'); ?></a></button>
+        <button class="button"><a href="#shortcodes"><?php _e('Shortcodes', 'gift-certificates-fluentforms'); ?></a></button>
+        <button class="button"><a href="#troubleshooting"><?php _e('Troubleshooting', 'gift-certificates-fluentforms'); ?></a></button>
+        <button class="button"><a href="#support"><?php _e('Support', 'gift-certificates-fluentforms'); ?></a></button>
+    </div>
     
     <div class="gift-certificate-help">
         
-        <div class="help-section">
+        <div class="help-section" id="setup-instructions">
             <h2><?php _e('Setup Instructions', 'gift-certificates-fluentforms'); ?></h2>
             
             <h3><?php _e('Step 1: Create a Fluent Forms Form', 'gift-certificates-fluentforms'); ?></h3>
@@ -40,7 +51,7 @@ if (!defined('ABSPATH')) {
             </ol>
         </div>
         
-        <div class="help-section">
+        <div class="help-section" id="how-it-works">
             <h2><?php _e('How It Works', 'gift-certificates-fluentforms'); ?></h2>
             
             <h3><?php _e('Purchase Process', 'gift-certificates-fluentforms'); ?></h3>
@@ -64,7 +75,7 @@ if (!defined('ABSPATH')) {
             </ol>
         </div>
         
-        <div class="help-section">
+        <div class="help-section" id="balance-checking">
             <h2><?php _e('Balance Checking', 'gift-certificates-fluentforms'); ?></h2>
             
             <h3><?php _e('API Endpoints', 'gift-certificates-fluentforms'); ?></h3>
@@ -106,19 +117,35 @@ function checkBalance() {
         }
     });
 }
-&lt;/script&gt;</code></pre>
-        </div>
+&lt;/script&gt;</code></pre></div>
+        <div class="help-section" id="design-selection">
+            <h2><?php _e('Design Selection Field Instructions', 'gift-certificates-fluentforms'); ?></h2>
+            
+            <h3><?php _e('Purpose', 'gift-certificates-fluentforms'); ?></h3>
+            <p><?php _e('The Design Selection Field allows users to choose from different design templates for their gift certificate. This choice can reflect different themes, occasions, or personal preferences.', 'gift-certificates-fluentforms'); ?></p>
+            
+            <h3><?php _e('Setup Instructions', 'gift-certificates-fluentforms'); ?></h3>
+            <ol>
+                <li><?php _e('Navigate to Fluent Forms and either open an existing form or create a new one.', 'gift-certificates-fluentforms'); ?></li>
+                <li><?php _e('Add a Radio or Select field to your form.', 'gift-certificates-fluentforms'); ?></li>
+                <li><?php _e('Set the Field Name to match the configuration in the plugin settings (default: gift_certificate_design).', 'gift-certificates-fluentforms'); ?></li>
+                <li><?php _e('Add options corresponding to available design IDs. Ensure the values exactly match the design IDs.', 'gift-certificates-fluentforms'); ?></li>
+            </ol>
+            
+            <h3><?php _e('Example Setup', 'gift-certificates-fluentforms'); ?></h3>
+            <ul>
+                <li><?php _e('Option Label: "Classic Gift Certificate" | Value: "default"', 'gift-certificates-fluentforms'); ?></li>
+                <li><?php _e('Option Label: "Holiday Special" | Value: "holiday_theme"', 'gift-certificates-fluentforms'); ?></li>
+                <li><?php _e('Option Label: "Birthday Celebration" | Value: "birthday_design"', 'gift-certificates-fluentforms'); ?></li>
+            </ul>
+
+            <h3><?php _e('Troubleshooting', 'gift-certificates-fluentforms'); ?></h3>
+            <p><?php _e('Ensure that the option values precisely match the design IDs configured in the Design Templates section of the plugin.', 'gift-certificates-fluentforms'); ?></p>
+        </div>        
         
-        <div class="help-section">
+        <div class="help-section" id="shortcodes">
             <h2><?php _e('Shortcodes', 'gift-certificates-fluentforms'); ?></h2>
             
-            <h3><?php _e('Balance Check Shortcode', 'gift-certificates-fluentforms'); ?></h3>
-            <p><?php _e('Use this shortcode to display a balance check form on any page:', 'gift-certificates-fluentforms'); ?></p>
-            <code>[gift_certificate_balance_check]</code>
-            
-            <h4><?php _e('Available Options:', 'gift-certificates-fluentforms'); ?></h4>
-            <ul>
-                <li><code>title</code> - <?php _e('Custom title for the form', 'gift-certificates-fluentforms'); ?></li>
                 <li><code>placeholder</code> - <?php _e('Custom placeholder text', 'gift-certificates-fluentforms'); ?></li>
                 <li><code>button_text</code> - <?php _e('Custom button text', 'gift-certificates-fluentforms'); ?></li>
                 <li><code>show_instructions</code> - <?php _e('Show/hide instructions (true/false)', 'gift-certificates-fluentforms'); ?></li>
@@ -133,7 +160,7 @@ function checkBalance() {
             <p class="description"><?php _e('If no form_id is specified, the form ID from settings will be used.', 'gift-certificates-fluentforms'); ?></p>
         </div>
         
-        <div class="help-section">
+        <div class="help-section" id="troubleshooting">
             <h2><?php _e('Troubleshooting', 'gift-certificates-fluentforms'); ?></h2>
             
             <h3><?php _e('Common Issues', 'gift-certificates-fluentforms'); ?></h3>
@@ -145,9 +172,6 @@ function checkBalance() {
                 <li><?php _e('Check WordPress error logs for any PHP errors', 'gift-certificates-fluentforms'); ?></li>
             </ul>
             
-            <h4><?php _e('Coupons not working', 'gift-certificates-fluentforms'); ?></h4>
-            <ul>
-                <li><?php _e('Ensure Fluent Forms Pro is installed and activated', 'gift-certificates-fluentforms'); ?></li>
                 <li><?php _e('Check that coupon functionality is enabled in Fluent Forms Pro', 'gift-certificates-fluentforms'); ?></li>
                 <li><?php _e('Verify the coupon code format (should start with GC)', 'gift-certificates-fluentforms'); ?></li>
             </ul>
@@ -160,7 +184,7 @@ function checkBalance() {
             </ul>
         </div>
         
-        <div class="help-section">
+        <div class="help-section" id="support">
             <h2><?php _e('Support', 'gift-certificates-fluentforms'); ?></h2>
             
             <p><?php _e('For additional support:', 'gift-certificates-fluentforms'); ?></p>
@@ -170,7 +194,6 @@ function checkBalance() {
                 <li><?php _e('Test with a default WordPress theme to rule out theme conflicts', 'gift-certificates-fluentforms'); ?></li>
             </ul>
         </div>
-        
     </div>
 </div>
 

@@ -202,6 +202,29 @@ jQuery(document).ready(function($) {
             }
         });
     }
+
+    // Event listener for the 'Send Test Email' buttons
+    $('.send-test-email').on('click', function () {
+        var designId = $(this).data('design-id');
+        var emailAddress = prompt('Please enter the email address to send the test email to:');
+
+        if (emailAddress) {
+            $.post(giftCertificateDesigns.ajax_url, {
+                action: 'send_test_email',
+                design_id: designId,
+                email: emailAddress,
+                nonce: giftCertificateDesigns.nonce
+            })
+            .done(function (response) {
+                alert(response.data.message);
+            })
+            .fail(function () {
+                alert('An error occurred while sending the test email.');
+            });
+        } else {
+            alert('Email address is required to send a test email.');
+        }
+    });
     
     function deleteDesign(designId) {
         $.ajax({
