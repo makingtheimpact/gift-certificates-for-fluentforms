@@ -48,7 +48,11 @@ class GiftCertificatesForFluentForms {
     }
     
     public function load_textdomain() {
-        load_plugin_textdomain('gift-certificates-fluentforms', false, dirname(plugin_basename(__FILE__)) . '/languages');
+        load_plugin_textdomain(
+            'gift-certificates-fluentforms',
+            false,
+            dirname(plugin_basename(__FILE__)) . '/languages/'
+        );
     }
     
     public function init() {
