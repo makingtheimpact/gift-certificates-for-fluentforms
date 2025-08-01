@@ -2,6 +2,7 @@
 /**
  * REST API for gift certificate balance checking and management
  */
+namespace GiftCertificatesFluentForms;
 
 if (!defined('ABSPATH')) {
     exit;

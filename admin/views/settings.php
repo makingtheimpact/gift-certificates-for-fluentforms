@@ -197,7 +197,7 @@ $settings = get_option('gift_certificates_ff_settings', array());
                                     <li><strong>default</strong> - <?php _e('Default design (always available)', 'gift-certificates-fluentforms'); ?></li>
                                     <?php
                                     // Get available designs for reference
-                                    $designs = new GiftCertificateDesigns();
+                                    $designs = new \GiftCertificatesFluentForms\GiftCertificateDesigns();
                                     $available_designs = $designs->get_active_designs();
                                     foreach ($available_designs as $design_id => $design) {
                                         if ($design_id !== 'default') {
@@ -246,7 +246,7 @@ $settings = get_option('gift_certificates_ff_settings', array());
                         <div class="available-designs-reference" style="margin-top: 15px; padding: 10px; background: #fff; border: 1px solid #ddd;">
                             <h4><?php _e('Available Design IDs for Reference:', 'gift-certificates-fluentforms'); ?></h4>
                             <?php
-                            $designs = new GiftCertificateDesigns();
+                            $designs = new \GiftCertificatesFluentForms\GiftCertificateDesigns();
                             $design_options = $designs->get_design_options_for_form();
                             
                             if (!empty($design_options)) {
