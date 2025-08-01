@@ -108,6 +108,7 @@ class GiftCertificatesForFluentForms {
     
     public function load_dependencies() {
         // Load required files
+        require_once GIFT_CERTIFICATES_FF_PLUGIN_DIR . 'includes/gcff-functions.php';
         require_once GIFT_CERTIFICATES_FF_PLUGIN_DIR . 'includes/class-gift-certificate-database.php';
         require_once GIFT_CERTIFICATES_FF_PLUGIN_DIR . 'includes/class-gift-certificate-admin.php';
         require_once GIFT_CERTIFICATES_FF_PLUGIN_DIR . 'includes/class-gift-certificate-webhook.php';
@@ -157,7 +158,7 @@ class GiftCertificatesForFluentForms {
             if ($migrated) {
                 $settings['allowed_form_ids'] = $new_allowed_form_ids;
                 update_option('gift_certificates_ff_settings', $settings);
-                error_log('Gift Certificates: Migrated form IDs from integers to strings');
+                gcff_log('Gift Certificates: Migrated form IDs from integers to strings');
             }
         }
     }

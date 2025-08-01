@@ -146,7 +146,7 @@ class GiftCertificateCoupon {
         delete_transient("gift_certificate_{$submission_id}");
         
         // Log transaction
-        error_log("Gift certificate used: ID {$gift_certificate_id}, Amount: {$amount_used}, New Balance: {$new_balance}");
+        gcff_log("Gift certificate used: ID {$gift_certificate_id}, Amount: {$amount_used}, New Balance: {$new_balance}");
     }
     
     private function is_gift_certificate_coupon($coupon) {
@@ -219,7 +219,7 @@ class GiftCertificateCoupon {
         
         // Check if coupon table exists
         if (!$this->table_exists($coupon_table_name)) {
-            error_log("Gift Certificate: Coupon table '{$coupon_table_name}' does not exist - cannot deactivate coupon");
+            gcff_log("Gift Certificate: Coupon table '{$coupon_table_name}' does not exist - cannot deactivate coupon");
             return false;
         }
         
@@ -233,15 +233,15 @@ class GiftCertificateCoupon {
                 ));
             
             if ($result) {
-                error_log("Gift Certificate: Fluent Forms coupon deactivated successfully - Code: {$coupon_code}");
+                gcff_log("Gift Certificate: Fluent Forms coupon deactivated successfully - Code: {$coupon_code}");
                 return true;
             } else {
-                error_log("Gift Certificate: Failed to deactivate Fluent Forms coupon - Code: {$coupon_code}");
+                gcff_log("Gift Certificate: Failed to deactivate Fluent Forms coupon - Code: {$coupon_code}");
                 return false;
             }
             
         } catch (Exception $e) {
-            error_log("Failed to deactivate Fluent Forms coupon: " . $e->getMessage());
+            gcff_log("Failed to deactivate Fluent Forms coupon: " . $e->getMessage());
             return false;
         }
     }
@@ -252,7 +252,7 @@ class GiftCertificateCoupon {
         
         // Check if coupon table exists
         if (!$this->table_exists($coupon_table_name)) {
-            error_log("Gift Certificate: Coupon table '{$coupon_table_name}' does not exist - cannot update coupon amount");
+            gcff_log("Gift Certificate: Coupon table '{$coupon_table_name}' does not exist - cannot update coupon amount");
             return false;
         }
         
@@ -263,7 +263,7 @@ class GiftCertificateCoupon {
                 ->first();
             
             if (!$coupon) {
-                error_log("Gift Certificate: Coupon not found for update - Code: {$coupon_code}");
+                gcff_log("Gift Certificate: Coupon not found for update - Code: {$coupon_code}");
                 return false;
             }
             
@@ -284,15 +284,15 @@ class GiftCertificateCoupon {
                 ));
             
             if ($result) {
-                error_log("Gift Certificate: Fluent Forms coupon amount updated successfully - Code: {$coupon_code}, New Amount: {$new_amount}");
+                gcff_log("Gift Certificate: Fluent Forms coupon amount updated successfully - Code: {$coupon_code}, New Amount: {$new_amount}");
                 return true;
             } else {
-                error_log("Gift Certificate: Failed to update Fluent Forms coupon amount - Code: {$coupon_code}");
+                gcff_log("Gift Certificate: Failed to update Fluent Forms coupon amount - Code: {$coupon_code}");
                 return false;
             }
             
         } catch (Exception $e) {
-            error_log("Failed to update Fluent Forms coupon amount: " . $e->getMessage());
+            gcff_log("Failed to update Fluent Forms coupon amount: " . $e->getMessage());
             return false;
         }
     }
@@ -325,7 +325,7 @@ class GiftCertificateCoupon {
             $table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$full_table_name}'") === $full_table_name;
             return $table_exists;
         } catch (Exception $e) {
-            error_log("Gift Certificate: Error checking table '{$full_table_name}': " . $e->getMessage());
+            gcff_log("Gift Certificate: Error checking table '{$full_table_name}': " . $e->getMessage());
             return false;
         }
     }
@@ -384,7 +384,7 @@ class GiftCertificateCoupon {
                 $this->track_coupon_usage($coupon, $form_data, $entry_id);
             }
         } catch (Exception $e) {
-            error_log("Gift Certificate: Error tracking coupon usage: " . $e->getMessage());
+            gcff_log("Gift Certificate: Error tracking coupon usage: " . $e->getMessage());
         }
     }
 } 

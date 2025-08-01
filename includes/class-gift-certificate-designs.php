@@ -267,7 +267,7 @@ class GiftCertificateDesigns {
         }
         
         // Debug: Log the original template
-        error_log('Gift Certificate: Original template length: ' . strlen($template));
+        gcff_log('Gift Certificate: Original template length: ' . strlen($template));
         
         // Allow basic HTML tags for email content
         $allowed_html = array(
@@ -331,10 +331,10 @@ class GiftCertificateDesigns {
         $sanitized = wp_kses($template, $allowed_html);
         
         // Debug: Log after wp_kses
-        error_log('Gift Certificate: After wp_kses length: ' . strlen($sanitized));
+        gcff_log('Gift Certificate: After wp_kses length: ' . strlen($sanitized));
         
         // Debug: Log final result
-        error_log('Gift Certificate: Final sanitized length: ' . strlen($sanitized));
+        gcff_log('Gift Certificate: Final sanitized length: ' . strlen($sanitized));
         
         return $sanitized;
     }
