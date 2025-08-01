@@ -690,23 +690,10 @@ body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-si
             wp_send_json_error(array('message' => 'Invalid email address'));
         }
 
-        // Load the email sending class
+        // Use the email class to send a test email with the selected design
         $email_sender = new GiftCertificateEmail();
 
-        // Prepare demo data for the email
-        $demo_data = array(
-            'recipient_name' => 'Test Recipient',
-            'sender_name' => 'Test Sender',
-            'amount' => '100.00',
-            'coupon_code' => 'TESTCODE',
-            'message' => 'This is a demo message.',
-            'site_name' => get_bloginfo('name'),
-            'site_url' => home_url(),
-            'balance_check_url' => '#'
-        );
-
-        // Call the actual send function with simulated data
-        $sent = $email_sender->send_certificate_email($email, $demo_data);
+        $sent = $email_sender->send_test_email($email, $design_id);
 
         if ($sent) {
             wp_send_json_success(array('message' => 'Test email sent successfully.'));
