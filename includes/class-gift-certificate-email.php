@@ -422,24 +422,28 @@ body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-si
 }";
     }
     
-    public function send_test_email($email_address) {
-        error_log("Gift Certificate Email: Sending test email to {$email_address}");
-        
+    public function send_test_email($email_address, $design_id = 'default') {
+        error_log("Gift Certificate Email: Sending test email to {$email_address} using design {$design_id}");
+
         // Check email configuration
         $this->check_email_configuration();
-        
+
         $test_certificate = (object) array(
+            'id' => 0,
             'recipient_name' => 'Test Recipient',
             'sender_name' => 'Test Sender',
             'original_amount' => 50.00,
             'coupon_code' => 'GCTEST123',
             'message' => 'This is a test gift certificate message.',
-            'design_id' => 'default'
+            'design_id' => $design_id
         );
-        
-        // Get the default design
+
+        // Get the requested design, fallback to default if not found
         $designs = new GiftCertificateDesigns();
-        $design = $designs->get_default_design();
+        $design = $designs->get_design($design_id);
+        if (!$design) {
+            $design = $designs->get_default_design();
+        }
         
         $subject = $this->get_email_subject($test_certificate);
         $message = $this->get_email_message($test_certificate, $design);
