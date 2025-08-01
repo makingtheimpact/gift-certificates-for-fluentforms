@@ -49,9 +49,9 @@ class GiftCertificateEmail {
         $headers = $this->get_email_headers($design);
         
         // Send email
-        error_log("Gift Certificate Email: Attempting to send email to {$gift_certificate->recipient_email}");
-        error_log("Gift Certificate Email: Subject: {$subject}");
-        error_log("Gift Certificate Email: Headers: " . print_r($headers, true));
+        gcff_log("Gift Certificate Email: Attempting to send email to {$gift_certificate->recipient_email}");
+        gcff_log("Gift Certificate Email: Subject: {$subject}");
+        gcff_log("Gift Certificate Email: Headers: " . print_r($headers, true));
         
         $sent = wp_mail($gift_certificate->recipient_email, $subject, $message, $headers);
         
@@ -60,19 +60,19 @@ class GiftCertificateEmail {
             $this->database->update_gift_certificate_status($gift_certificate_id, 'delivered');
             
             // Log successful delivery
-            error_log("Gift certificate email sent successfully: ID {$gift_certificate_id} to {$gift_certificate->recipient_email}");
+            gcff_log("Gift certificate email sent successfully: ID {$gift_certificate_id} to {$gift_certificate->recipient_email}");
         } else {
             // Log failed delivery
-            error_log("Failed to send gift certificate email: ID {$gift_certificate_id} to {$gift_certificate->recipient_email}");
+            gcff_log("Failed to send gift certificate email: ID {$gift_certificate_id} to {$gift_certificate->recipient_email}");
             
             // Check if FluentSMTP is available and log its status
             if (class_exists('FluentSmtp\App\Services\MailerManager')) {
-                error_log("Gift Certificate Email: FluentSMTP is available");
+                gcff_log("Gift Certificate Email: FluentSMTP is available");
                 $mailer_manager = FluentSmtp\App\Services\MailerManager::getInstance();
                 $current_mailer = $mailer_manager->getCurrentMailer();
-                error_log("Gift Certificate Email: Current mailer: " . ($current_mailer ? $current_mailer->getKey() : 'None'));
+                gcff_log("Gift Certificate Email: Current mailer: " . ($current_mailer ? $current_mailer->getKey() : 'None'));
             } else {
-                error_log("Gift Certificate Email: FluentSMTP is not available");
+                gcff_log("Gift Certificate Email: FluentSMTP is not available");
             }
         }
         
@@ -423,7 +423,7 @@ body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-si
     }
     
     public function send_test_email($email_address, $design_id = 'default') {
-        error_log("Gift Certificate Email: Sending test email to {$email_address} using design {$design_id}");
+        gcff_log("Gift Certificate Email: Sending test email to {$email_address} using design {$design_id}");
 
         // Check email configuration
         $this->check_email_configuration();
@@ -449,43 +449,43 @@ body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-si
         $message = $this->get_email_message($test_certificate, $design);
         $headers = $this->get_email_headers($design);
         
-        error_log("Gift Certificate Email: Test email subject: {$subject}");
-        error_log("Gift Certificate Email: Test email headers: " . print_r($headers, true));
+        gcff_log("Gift Certificate Email: Test email subject: {$subject}");
+        gcff_log("Gift Certificate Email: Test email headers: " . print_r($headers, true));
         
         $result = wp_mail($email_address, $subject, $message, $headers);
         
-        error_log("Gift Certificate Email: Test email result: " . ($result ? 'Success' : 'Failed'));
+        gcff_log("Gift Certificate Email: Test email result: " . ($result ? 'Success' : 'Failed'));
         
         return $result;
     }
     
     private function check_email_configuration() {
-        error_log("Gift Certificate Email: Checking email configuration...");
+        gcff_log("Gift Certificate Email: Checking email configuration...");
         
         // Check if FluentSMTP is available
         if (class_exists('FluentSmtp\App\Services\MailerManager')) {
-            error_log("Gift Certificate Email: FluentSMTP is available");
+            gcff_log("Gift Certificate Email: FluentSMTP is available");
             
             try {
                 $mailer_manager = FluentSmtp\App\Services\MailerManager::getInstance();
                 $current_mailer = $mailer_manager->getCurrentMailer();
                 
                 if ($current_mailer) {
-                    error_log("Gift Certificate Email: Current mailer: " . $current_mailer->getKey());
-                    error_log("Gift Certificate Email: Mailer settings: " . print_r($current_mailer->getSettings(), true));
+                    gcff_log("Gift Certificate Email: Current mailer: " . $current_mailer->getKey());
+                    gcff_log("Gift Certificate Email: Mailer settings: " . print_r($current_mailer->getSettings(), true));
                 } else {
-                    error_log("Gift Certificate Email: No mailer configured in FluentSMTP");
+                    gcff_log("Gift Certificate Email: No mailer configured in FluentSMTP");
                 }
             } catch (Exception $e) {
-                error_log("Gift Certificate Email: Error checking FluentSMTP: " . $e->getMessage());
+                gcff_log("Gift Certificate Email: Error checking FluentSMTP: " . $e->getMessage());
             }
         } else {
-            error_log("Gift Certificate Email: FluentSMTP is not available");
+            gcff_log("Gift Certificate Email: FluentSMTP is not available");
         }
         
         // Check WordPress mail settings
-        error_log("Gift Certificate Email: WordPress admin email: " . get_option('admin_email'));
-        error_log("Gift Certificate Email: WordPress blog name: " . get_bloginfo('name'));
+        gcff_log("Gift Certificate Email: WordPress admin email: " . get_option('admin_email'));
+        gcff_log("Gift Certificate Email: WordPress blog name: " . get_bloginfo('name'));
     }
     
     public function get_email_preview($gift_certificate_id) {

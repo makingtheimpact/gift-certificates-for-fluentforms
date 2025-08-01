@@ -408,7 +408,7 @@ class GiftCertificateAdmin {
             return true;
             
         } catch (Exception $e) {
-            error_log("Failed to delete Fluent Forms coupon: " . $e->getMessage());
+            gcff_log("Failed to delete Fluent Forms coupon: " . $e->getMessage());
             return false;
         }
     }
