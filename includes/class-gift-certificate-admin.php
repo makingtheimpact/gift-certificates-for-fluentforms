@@ -311,6 +311,10 @@ class GiftCertificateAdmin {
         if (!wp_verify_nonce($_POST['nonce'], 'gift_certificate_admin_nonce')) {
             wp_die('Security check failed');
         }
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( 'Permission denied' );
+        }
         
         $action = sanitize_text_field($_POST['action_type']);
         $certificate_id = intval($_POST['certificate_id']);
