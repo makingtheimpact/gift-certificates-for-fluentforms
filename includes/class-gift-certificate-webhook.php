@@ -543,7 +543,12 @@ class GiftCertificateWebhook {
         
         if (!empty($custom_table_name)) {
             // Remove wp_ prefix if present since wpFluent() adds it automatically
-            return str_replace('wp_', '', $custom_table_name);
+            $custom_table_name = str_replace('wp_', '', $custom_table_name);
+
+            // Sanitize to allow only alphanumeric characters and underscores
+            $custom_table_name = sanitize_key($custom_table_name);
+
+            return $custom_table_name;
         }
         
         // Default table name (without wp_ prefix since wpFluent adds it)
