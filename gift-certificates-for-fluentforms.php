@@ -24,6 +24,15 @@ define('GIFT_CERTIFICATES_FF_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('GIFT_CERTIFICATES_FF_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('GIFT_CERTIFICATES_FF_PLUGIN_BASENAME', plugin_basename(__FILE__));
 
+use GiftCertificatesFluentForms\GiftCertificateDatabase;
+use GiftCertificatesFluentForms\GiftCertificateAdmin;
+use GiftCertificatesFluentForms\GiftCertificateWebhook;
+use GiftCertificatesFluentForms\GiftCertificateCoupon;
+use GiftCertificatesFluentForms\GiftCertificateAPI;
+use GiftCertificatesFluentForms\GiftCertificateEmail;
+use GiftCertificatesFluentForms\GiftCertificateShortcodes;
+use GiftCertificatesFluentForms\GiftCertificateDesigns;
+
 // Main plugin class
 class GiftCertificatesForFluentForms {
     
@@ -172,7 +181,7 @@ class GiftCertificatesForFluentForms {
         $this->load_dependencies();
         
         // Check if database class exists
-        if (!class_exists('GiftCertificateDatabase')) {
+        if (!class_exists(GiftCertificateDatabase::class)) {
             wp_die('Gift Certificate Database class not found. Please check plugin installation.');
         }
         

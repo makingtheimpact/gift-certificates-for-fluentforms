@@ -2,6 +2,7 @@
 /**
  * Coupon integration with Fluent Forms Pro
  */
+namespace GiftCertificatesFluentForms;
 
 if (!defined('ABSPATH')) {
     exit;

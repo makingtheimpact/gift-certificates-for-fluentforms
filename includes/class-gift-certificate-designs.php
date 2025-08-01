@@ -2,6 +2,7 @@
 /**
  * Gift Certificate Design Templates Handler
  */
+namespace GiftCertificatesFluentForms;
 
 if (!defined('ABSPATH')) {
     exit;

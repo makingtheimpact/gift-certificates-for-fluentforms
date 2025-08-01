@@ -2,6 +2,7 @@
 /**
  * Webhook handler for Fluent Forms submissions
  */
+namespace GiftCertificatesFluentForms;
 
 if (!defined('ABSPATH')) {
     exit;

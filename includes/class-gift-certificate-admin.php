@@ -2,6 +2,7 @@
 /**
  * Admin interface for gift certificates
  */
+namespace GiftCertificatesFluentForms;
 
 if (!defined('ABSPATH')) {
     exit;
