@@ -583,8 +583,12 @@ class GiftCertificateWebhook {
         // Check if delivery should be delayed
         if ($gift_certificate->delivery_date && $gift_certificate->delivery_date > current_time('Y-m-d')) {
             // Schedule delivery for later
+            $tz       = wp_timezone();
+            $dt       = new DateTime($gift_certificate->delivery_date . ' 09:00:00', $tz);
+            $timestamp = $dt->getTimestamp();
+
             wp_schedule_single_event(
-                strtotime($gift_certificate->delivery_date . ' 09:00:00'),
+                $timestamp,
                 'gift_certificate_scheduled_delivery',
                 array($gift_certificate_id)
             );
