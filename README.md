@@ -31,6 +31,13 @@ A comprehensive WordPress plugin that extends Fluent Forms Pro to sell and redee
 3. Activate the plugin through the 'Plugins' menu in WordPress
 4. Go to 'Gift Certificates → Settings' to configure the plugin
 
+## Uninstallation
+
+When you delete the plugin through the WordPress admin, it will clean up its data:
+
+- The `gift_certificates_ff_settings` option is removed.
+- Custom database tables (`gift_certificates` and `gift_certificate_transactions`) are dropped.
+
 ## Quick Setup
 
 ### 1. Create a Fluent Forms Form
