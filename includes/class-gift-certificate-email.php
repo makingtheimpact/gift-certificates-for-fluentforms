@@ -89,8 +89,12 @@ class GiftCertificateEmail {
         // Check if delivery date has arrived
         if ($gift_certificate->delivery_date > current_time('Y-m-d')) {
             // Reschedule for tomorrow
+            $tz      = wp_timezone();
+            $dt      = new DateTime($gift_certificate->delivery_date . ' 09:00:00', $tz);
+            $timestamp = $dt->getTimestamp();
+
             wp_schedule_single_event(
-                strtotime($gift_certificate->delivery_date . ' 09:00:00'),
+                $timestamp,
                 'gift_certificate_scheduled_delivery',
                 array($gift_certificate_id)
             );
