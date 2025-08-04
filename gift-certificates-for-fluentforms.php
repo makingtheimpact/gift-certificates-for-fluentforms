@@ -3,13 +3,13 @@
  * Plugin Name: Gift Certificates for Fluent Forms
  * Plugin URI: https://github.com/makingtheimpact/gift-certificates-for-fluentforms
  * Description: Extend Fluent Forms Pro to sell and redeem gift certificates with webhook integration, coupon management, and balance tracking.
- * Version: 1.0.0
+ * Version: 1.1.0
  * Author: Making The Impact LLC
  * License: GPL v2 or later
  * Text Domain: gift-certificates-fluentforms
  * Domain Path: /languages
- * Requires at least: 5.0
- * Tested up to: 6.4
+ * Requires at least: 6.0
+ * Tested up to: 6.5
  * Requires PHP: 7.4
  */
 
@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('GIFT_CERTIFICATES_FF_VERSION', '1.0.0');
+define('GIFT_CERTIFICATES_FF_VERSION', '1.1.0');
 define('GIFT_CERTIFICATES_FF_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('GIFT_CERTIFICATES_FF_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('GIFT_CERTIFICATES_FF_PLUGIN_BASENAME', plugin_basename(__FILE__));
