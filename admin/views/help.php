@@ -133,7 +133,7 @@ function checkBalance() {
             </ol>
             
             <h4><?php _e('Example Configuration:', 'gift-certificates-fluentforms'); ?></h4>
-            <table class="widefat" style="margin-top: 10px;">
+            <table class="widefat gcff-table" style="margin-top: 10px;">
                 <thead>
                     <tr>
                         <th><?php _e('Option Label', 'gift-certificates-fluentforms'); ?></th>
@@ -170,7 +170,7 @@ function checkBalance() {
             $design_options = $designs->get_design_options_for_form();
             
             if (!empty($design_options)) {
-                echo '<table class="widefat" style="margin-top: 10px;">';
+                echo '<table class="widefat gcff-table" style="margin-top: 10px;">';
                 echo '<thead><tr><th>' . __('Design ID', 'gift-certificates-fluentforms') . '</th><th>' . __('Design Name', 'gift-certificates-fluentforms') . '</th><th>' . __('Status', 'gift-certificates-fluentforms') . '</th></tr></thead>';
                 echo '<tbody>';
                 

@@ -193,7 +193,7 @@ $settings = get_option('gift_certificates_ff_settings', array());
                     $design_options = $designs->get_design_options_for_form();
                     
                     if (!empty($design_options)) {
-                        echo '<table class="widefat" style="margin-top: 10px;">';
+                        echo '<table class="widefat gcff-table" style="margin-top: 10px;">';
                         echo '<thead><tr><th>' . __('Design ID', 'gift-certificates-fluentforms') . '</th><th>' . __('Design Name', 'gift-certificates-fluentforms') . '</th><th>' . __('Status', 'gift-certificates-fluentforms') . '</th></tr></thead>';
                         echo '<tbody>';
                         

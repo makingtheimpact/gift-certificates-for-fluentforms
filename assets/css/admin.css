@@ -81,11 +81,16 @@
 .form-table th {
     width: 200px;
     vertical-align: top;
-    padding-top: 15px;
+    padding: 15px 10px;
 }
 
 .form-table td {
-    padding-top: 15px;
+    padding: 15px 10px;
+}
+
+.gcff-table th,
+.gcff-table td {
+    padding: 15px 10px;
 }
 
 .description {
