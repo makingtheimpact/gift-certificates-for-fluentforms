@@ -568,8 +568,13 @@ class GiftCertificateAdmin {
         // Sanitize balance check page
         $sanitized['balance_check_page_id'] = intval($input['balance_check_page_id'] ?? 0);
         
-        // Sanitize coupon table name
-        $sanitized['coupon_table_name'] = sanitize_text_field($input['coupon_table_name'] ?? '');
+        // Sanitize coupon table name (allow only alphanumeric characters and underscores)
+        $coupon_table = $input['coupon_table_name'] ?? '';
+        $coupon_table = trim($coupon_table);
+        if ($coupon_table !== '' && !preg_match('/^[A-Za-z0-9_]+$/', $coupon_table)) {
+            $coupon_table = '';
+        }
+        $sanitized['coupon_table_name'] = sanitize_key($coupon_table);
         
         return $sanitized;
     }
