@@ -15,6 +15,7 @@ Gift Certificates for Fluent Forms is a comprehensive solution for managing gift
 * Coupon management and balance tracking
 * Scheduled delivery and customizable email templates
 * Shortcodes and REST API endpoints for checking balances and purchasing
+* Balance endpoint requires a WordPress nonce for requests
 * Admin interface for managing designs and transactions
 
 == Installation ==

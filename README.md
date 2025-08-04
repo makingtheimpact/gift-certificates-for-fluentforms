@@ -12,6 +12,7 @@ A comprehensive WordPress plugin that extends Fluent Forms Pro to sell and redee
 - **Balance Tracking**: Real-time balance updates and transaction history
 - **Scheduled Delivery**: Send gift certificates immediately or on a specific date
 - **REST API**: Built-in API endpoints for balance checking and management
+- **Nonce-Protected**: Balance check requests require a valid WordPress nonce
 - **Admin Interface**: Complete WordPress admin interface for managing gift certificates
 - **Email Templates**: Customizable email templates with HTML support
 - **Design Templates**: Multiple gift certificate design templates with custom images
@@ -123,6 +124,7 @@ Options:
 ### API Endpoints
 
 #### Check Balance
+Requires a valid nonce sent in the `X-WP-Nonce` header.
 ```http
 POST /wp-json/gift-certificates/v1/balance
 Content-Type: application/json

@@ -48,7 +48,7 @@ class GiftCertificateAPI {
             array(
                 'methods' => WP_REST_Server::CREATABLE,
                 'callback' => array($this, 'check_balance'),
-                'permission_callback' => '__return_true',
+                'permission_callback' => array($this, 'verify_balance_request'),
                 'args' => array(
                     'code' => array(
                         'required' => true,
@@ -236,9 +236,29 @@ class GiftCertificateAPI {
         
         return new WP_REST_Response($stats, 200);
     }
-    
+
     public function check_balance_permission($request) {
         // Allow public access for balance checking
+        return true;
+    }
+
+    /**
+     * Verify nonce for balance checks to prevent abuse
+     *
+     * @param WP_REST_Request $request REST request object.
+     * @return true|WP_Error
+     */
+    public function verify_balance_request($request) {
+        $nonce = $request->get_header('X-WP-Nonce');
+
+        if (!$nonce || !wp_verify_nonce($nonce, 'wp_rest')) {
+            return new WP_Error(
+                'rest_forbidden',
+                __('Invalid or missing nonce.', 'gift-certificates-fluentforms'),
+                array('status' => 403)
+            );
+        }
+
         return true;
     }
     
