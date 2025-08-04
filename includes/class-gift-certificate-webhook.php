@@ -627,8 +627,8 @@ class GiftCertificateWebhook {
             return true;
         }
         
-        // Send email immediately
-        $email_handler = new GiftCertificateEmail();
+        // Send email immediately using the shared instance
+        $email_handler = GiftCertificateEmail::get_instance();
         return $email_handler->send_gift_certificate_email($gift_certificate_id);
     }
     

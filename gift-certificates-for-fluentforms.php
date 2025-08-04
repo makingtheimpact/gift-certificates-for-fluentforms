@@ -142,7 +142,7 @@ class GiftCertificatesForFluentForms {
         new GiftCertificateWebhook();
         new GiftCertificateCoupon();
         new GiftCertificateAPI();
-        new GiftCertificateEmail();
+        GiftCertificateEmail::get_instance();
         new GiftCertificateShortcodes();
         new GiftCertificateDesigns();
     }

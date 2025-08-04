@@ -374,7 +374,7 @@ class GiftCertificateAdmin {
     }
     
     private function resend_certificate($certificate_id) {
-        $email_handler = new GiftCertificateEmail();
+        $email_handler = GiftCertificateEmail::get_instance();
         $result = $email_handler->send_gift_certificate_email($certificate_id);
         
         if ($result) {
@@ -647,7 +647,7 @@ class GiftCertificateAdmin {
     }
     
     private function test_email($email_address) {
-        $email_handler = new GiftCertificateEmail();
+        $email_handler = GiftCertificateEmail::get_instance();
         $result = $email_handler->send_test_email($email_address);
         
         if ($result) {
