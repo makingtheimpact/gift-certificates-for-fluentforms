@@ -284,8 +284,9 @@ $settings = get_option('gift_certificates_ff_settings', array());
             <tr>
                 <th scope="row"><?php _e('Coupon Table Name', 'gift-certificates-fluentforms'); ?></th>
                 <td>
-                    <input type="text" name="gift_certificates_ff_settings[coupon_table_name]" value="<?php echo esc_attr($settings['coupon_table_name'] ?? ''); ?>" class="regular-text" placeholder="fluentform_coupons">
+                    <input type="text" name="gift_certificates_ff_settings[coupon_table_name]" value="<?php echo esc_attr($settings['coupon_table_name'] ?? ''); ?>" class="regular-text" placeholder="fluentform_coupons" pattern="[A-Za-z0-9_]+" title="<?php esc_attr_e('Only letters, numbers, and underscores are allowed.', 'gift-certificates-fluentforms'); ?>">
                     <p class="description"><?php _e('Leave empty to use the default table name. Only change this if your Fluent Forms coupon table has a different name.', 'gift-certificates-fluentforms'); ?></p>
+                    <p class="description"><?php _e('Allowed characters: letters, numbers, and underscores.', 'gift-certificates-fluentforms'); ?></p>
                     <p class="description"><?php _e('Note: The table prefix is automatically added by Fluent Forms.', 'gift-certificates-fluentforms'); ?></p>
                     <p class="description"><?php _e('Current default:', 'gift-certificates-fluentforms'); ?> <code>fluentform_coupons</code></p>
                 </td>
