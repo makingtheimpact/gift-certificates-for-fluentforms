@@ -120,13 +120,17 @@ $settings = get_option('gift_certificates_ff_settings', array());
                         ?>
                     </select>
                     <p class="description"><?php _e('Select the Fluent Forms form that will be used for gift certificate purchases.', 'gift-certificates-fluentforms'); ?></p>
-                    <?php if (defined('WP_DEBUG') && WP_DEBUG): ?>
+                    <?php
+                    $show_debug = current_user_can('manage_options') && defined('WP_DEBUG') && WP_DEBUG;
+                    $show_debug = apply_filters('gift_certificates_ff_show_debug_info', $show_debug);
+                    if ($show_debug): ?>
                         <p class="description" style="color: #666;">
-                            Debug: Fluent Forms active: <?php echo $fluent_forms_active ? 'Yes' : 'No'; ?>, 
-                            wpFluent function: <?php echo function_exists('wpFluent') ? 'Yes' : 'No'; ?><br>
-                            Classes found: 
-                            FluentForm\Framework\Foundation\Bootstrap: <?php echo class_exists('FluentForm\Framework\Foundation\Bootstrap') ? 'Yes' : 'No'; ?>,
-                            FluentFormPro\Framework\Foundation\Bootstrap: <?php echo class_exists('FluentFormPro\Framework\Foundation\Bootstrap') ? 'Yes' : 'No'; ?>
+                            <?php _e('Debug:', 'gift-certificates-fluentforms'); ?>
+                            <?php echo esc_html__('Fluent Forms active:', 'gift-certificates-fluentforms'); ?> <?php echo $fluent_forms_active ? 'Yes' : 'No'; ?>,
+                            <?php echo esc_html__('wpFluent function:', 'gift-certificates-fluentforms'); ?> <?php echo function_exists('wpFluent') ? 'Yes' : 'No'; ?><br>
+                            <?php echo esc_html__('Classes found:', 'gift-certificates-fluentforms'); ?>
+                            <?php echo esc_html__('FluentForm Framework Bootstrap:', 'gift-certificates-fluentforms'); ?> <?php echo class_exists('FluentForm\Framework\Foundation\Bootstrap') ? 'Yes' : 'No'; ?>,
+                            <?php echo esc_html__('FluentFormPro Framework Bootstrap:', 'gift-certificates-fluentforms'); ?> <?php echo class_exists('FluentFormPro\Framework\Foundation\Bootstrap') ? 'Yes' : 'No'; ?>
                         </p>
                     <?php endif; ?>
                 </td>
