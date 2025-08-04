@@ -105,7 +105,7 @@ class GiftCertificateDesigns {
                             </button>
                             <button type="button" class="button send-test-email" data-design-id="default">
                                 <?php _e('Send Test Email', 'gift-certificates-fluentforms'); ?>
-                            </button>                            
+                            </button>
                         </div>
                     </div>
                     
@@ -125,9 +125,9 @@ class GiftCertificateDesigns {
                             <button type="button" class="button edit-design" data-design-id="<?php echo esc_attr($design['id']); ?>">
                                 <?php _e('Edit', 'gift-certificates-fluentforms'); ?>
                             </button>
-                            <button type="button" class="button send-test-email" data-design-id="default">
+                            <button type="button" class="button send-test-email" data-design-id="<?php echo esc_attr($design['id']); ?>">
                                 <?php _e('Send Test Email', 'gift-certificates-fluentforms'); ?>
-                            </button> 
+                            </button>
                             <button type="button" class="button button-link-delete delete-design" data-design-id="<?php echo esc_attr($design['id']); ?>">
                                 <?php _e('Delete', 'gift-certificates-fluentforms'); ?>
                             </button>
