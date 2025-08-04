@@ -156,11 +156,17 @@ class GiftCertificateDatabase {
             return false;
         }
         
-        // If balance is zero, mark as expired
+        // If balance is zero, mark as expired and deactivate the coupon
         if ($new_balance <= 0) {
             $this->update_gift_certificate_status($id, 'expired');
+
+            // Deactivate associated coupon so it can't be used again
+            $gift_certificate = $this->get_gift_certificate($id);
+            if ($gift_certificate && !empty($gift_certificate->coupon_code)) {
+                do_action('gcff_gift_certificate_balance_zero', $gift_certificate->coupon_code);
+            }
         }
-        
+
         return true;
     }
     

@@ -22,9 +22,12 @@ class GiftCertificateCoupon {
         
         // Hook into coupon usage tracking
         add_action('fluentformpro_coupon_used', array($this, 'track_coupon_usage'), 10, 3);
-        
+
         // Hook into form submission completion to track coupon usage
         add_action('fluentform/form_submission_completed', array($this, 'handle_form_submission_with_coupon'), 10, 3);
+
+        // Listen for gift certificates reaching zero balance to deactivate coupons
+        add_action('gcff_gift_certificate_balance_zero', array($this, 'deactivate_fluent_forms_coupon'));
     }
     
     public function validate_gift_certificate_coupon($is_valid, $coupon, $form_data) {
@@ -134,12 +137,8 @@ class GiftCertificateCoupon {
             $submission_id
         );
         
-        // Update Fluent Forms Pro coupon
-        if ($new_balance <= 0) {
-            // Deactivate coupon if balance is zero
-            $this->deactivate_fluent_forms_coupon($coupon->code);
-        } else {
-            // Update coupon amount to remaining balance
+        // Update Fluent Forms Pro coupon amount if there's remaining balance
+        if ($new_balance > 0) {
             $this->update_fluent_forms_coupon_amount($coupon->code, $new_balance);
         }
         
@@ -233,7 +232,7 @@ class GiftCertificateCoupon {
         return in_array($form_id_str, $allowed_form_ids);
     }
     
-    private function deactivate_fluent_forms_coupon($coupon_code) {
+    public function deactivate_fluent_forms_coupon($coupon_code) {
         // Get the coupon table name
         $coupon_table_name = $this->get_coupon_table_name();
         
