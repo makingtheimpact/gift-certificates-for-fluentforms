@@ -25,6 +25,7 @@ if (isset($_POST['submit']) && wp_verify_nonce($_POST['gift_certificates_ff_nonc
     $sanitized['balance_check_page_id'] = intval($input['balance_check_page_id']);
     $sanitized['email_template'] = wp_kses_post($input['email_template']);
     $sanitized['email_format'] = sanitize_text_field($input['email_format']);
+    $sanitized['enable_logging'] = !empty($input['enable_logging']);
     
     // Handle allowed form IDs for redemption
     $sanitized['allowed_form_ids'] = array();
@@ -283,6 +284,17 @@ $settings = get_option('gift_certificates_ff_settings', array());
                     <p class="description"><?php _e('Leave empty to use the default table name. Only change this if your Fluent Forms coupon table has a different name.', 'gift-certificates-fluentforms'); ?></p>
                     <p class="description"><?php _e('Note: The table prefix is automatically added by Fluent Forms.', 'gift-certificates-fluentforms'); ?></p>
                     <p class="description"><?php _e('Current default:', 'gift-certificates-fluentforms'); ?> <code>fluentform_coupons</code></p>
+                </td>
+            </tr>
+
+            <tr>
+                <th scope="row"><?php _e('Enable Detailed Logging', 'gift-certificates-fluentforms'); ?></th>
+                <td>
+                    <label>
+                        <input type="checkbox" name="gift_certificates_ff_settings[enable_logging]" value="1" <?php checked($settings['enable_logging'] ?? 0, 1); ?>>
+                        <?php _e('Log additional debugging details', 'gift-certificates-fluentforms'); ?>
+                    </label>
+                    <p class="description"><?php _e('Disable on production sites to avoid logging sensitive information.', 'gift-certificates-fluentforms'); ?></p>
                 </td>
             </tr>
             
