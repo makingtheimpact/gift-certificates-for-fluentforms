@@ -165,21 +165,40 @@ class GiftCertificateCoupon {
     }
     
     private function calculate_order_total($form_data) {
-        // This method should calculate the total order amount from form data
-        // Implementation depends on your specific form structure
-        
+        // Determine the total order amount from form data.
+
         $total = 0;
-        
-        // Look for common total fields
-        $total_fields = array('total', 'amount', 'price', 'order_total', 'cart_total');
-        
+
+        // Look for common fields that may represent the order subtotal
+        $total_fields = array('total', 'order_total', 'cart_total', 'amount', 'price', 'payment_input');
         foreach ($total_fields as $field) {
             if (isset($form_data[$field])) {
-                $total = floatval($form_data[$field]);
+                $value = floatval($form_data[$field]);
+                if ($value > 0) {
+                    $total = $value;
+                    break;
+                }
+            }
+        }
+
+        // Apply quantity if a separate quantity field exists
+        $quantity_fields = array('item-quantity', 'quantity', 'qty');
+        $quantity = 1;
+        foreach ($quantity_fields as $qfield) {
+            if (isset($form_data[$qfield])) {
+                $quantity = max(1, intval($form_data[$qfield]));
                 break;
             }
         }
-        
+
+        // If total matches a unit price field, multiply by quantity
+        if ($total > 0 && isset($form_data['payment_input']) && $total == floatval($form_data['payment_input'])) {
+            $total = floatval($form_data['payment_input']) * $quantity;
+        } elseif ($total <= 0 && isset($form_data['payment_input'])) {
+            // Fallback when only payment_input is found
+            $total = floatval($form_data['payment_input']) * $quantity;
+        }
+
         return $total;
     }
     

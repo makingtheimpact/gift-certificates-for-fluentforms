@@ -339,32 +339,63 @@ class GiftCertificateWebhook {
      * Calculate the order total from form data
      */
     private function calculate_order_total($form_data) {
-        $total = 0;
-        
-        // Look for common payment/total fields
-        $total_fields = array('payment_input', 'total', 'amount', 'price', 'payment_amount');
-        
-        foreach ($total_fields as $field) {
+        $subtotal = 0;
+        $total_due = 0;
+
+        // Look for a subtotal/price field first
+        $subtotal_fields = array('subtotal', 'payment_input', 'amount', 'price', 'order_total', 'cart_total');
+        foreach ($subtotal_fields as $field) {
             if (isset($form_data[$field])) {
                 $value = floatval($form_data[$field]);
                 if ($value > 0) {
-                    $total = $value;
+                    $subtotal = $value;
                     break;
                 }
             }
         }
-        
-        // If no total found, try to calculate from quantity and price
-        if ($total <= 0) {
-            if (isset($form_data['item-quantity']) && isset($form_data['payment_input'])) {
-                $quantity = intval($form_data['item-quantity']);
-                $price = floatval($form_data['payment_input']);
-                $total = $quantity * $price;
+
+        // Apply quantity if available and subtotal appears to be a unit price
+        $quantity_fields = array('item-quantity', 'quantity', 'qty');
+        $quantity = 1;
+        foreach ($quantity_fields as $qfield) {
+            if (isset($form_data[$qfield])) {
+                $quantity = max(1, intval($form_data[$qfield]));
+                break;
             }
         }
-        
-        gcff_log("Gift Certificate Webhook: Calculated order total: {$total}");
-        return $total;
+
+        if ($subtotal > 0) {
+            if (isset($form_data['payment_input']) && $subtotal == floatval($form_data['payment_input'])) {
+                $subtotal *= $quantity;
+            } elseif (isset($form_data['price']) && $subtotal == floatval($form_data['price'])) {
+                $subtotal *= $quantity;
+            }
+        } elseif (isset($form_data['payment_input'])) {
+            // Fallback when only payment_input and quantity are present
+            $subtotal = floatval($form_data['payment_input']) * $quantity;
+        }
+
+        // Find the total amount actually charged after coupons (if available)
+        $total_fields = array('total', 'payment_total', 'payment_amount');
+        foreach ($total_fields as $field) {
+            if (isset($form_data[$field])) {
+                $value = floatval($form_data[$field]);
+                if ($value >= 0) {
+                    $total_due = $value;
+                    break;
+                }
+            }
+        }
+
+        // Amount to deduct is the portion covered by the gift certificate
+        if ($subtotal > 0 && $total_due > 0 && $total_due < $subtotal) {
+            $amount = $subtotal - $total_due;
+        } else {
+            $amount = $subtotal;
+        }
+
+        gcff_log("Gift Certificate Webhook: Calculated order total: {$amount}");
+        return $amount;
     }
     
     /**
