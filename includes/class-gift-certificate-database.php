@@ -314,11 +314,16 @@ class GiftCertificateDatabase {
     
     public function get_pending_deliveries() {
         global $wpdb;
-        
+
+        $current_date = current_time('Y-m-d');
+
         return $wpdb->get_results(
-            "SELECT * FROM {$this->gift_certificates_table} 
-             WHERE delivery_date <= CURDATE() 
-             AND status = 'pending_delivery'"
+            $wpdb->prepare(
+                "SELECT * FROM {$this->gift_certificates_table}
+                 WHERE delivery_date <= %s
+                 AND status = 'pending_delivery'",
+                $current_date
+            )
         );
     }
     
