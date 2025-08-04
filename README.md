@@ -138,6 +138,8 @@ X-WP-Nonce: {nonce}
 GET /wp-json/gift-certificates/v1/balance/GC12345678
 ```
 
+> **Data Exposed:** Balance endpoints return only the gift certificate's current balance and status. Recipient details are omitted to protect privacy.
+
 ### JavaScript Integration
 
 ```javascript

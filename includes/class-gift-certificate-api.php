@@ -95,7 +95,7 @@ class GiftCertificateAPI {
         $code = $request->get_param('code');
         
         $balance_info = $this->coupon_handler->get_gift_certificate_balance($code);
-        
+
         if (!$balance_info) {
             return new WP_Error(
                 'gift_certificate_not_found',
@@ -103,15 +103,20 @@ class GiftCertificateAPI {
                 array('status' => 404)
             );
         }
-        
-        return new WP_REST_Response($balance_info, 200);
+
+        $public_info = array(
+            'balance' => $balance_info['balance'],
+            'status'  => $balance_info['status']
+        );
+
+        return new WP_REST_Response($public_info, 200);
     }
     
     public function check_balance($request) {
         $code = $request->get_param('code');
         
         $balance_info = $this->coupon_handler->get_gift_certificate_balance($code);
-        
+
         if (!$balance_info) {
             return new WP_Error(
                 'gift_certificate_not_found',
@@ -119,8 +124,13 @@ class GiftCertificateAPI {
                 array('status' => 404)
             );
         }
-        
-        return new WP_REST_Response($balance_info, 200);
+
+        $public_info = array(
+            'balance' => $balance_info['balance'],
+            'status'  => $balance_info['status']
+        );
+
+        return new WP_REST_Response($public_info, 200);
     }
     
     public function get_certificates($request) {
@@ -280,11 +290,16 @@ class GiftCertificateAPI {
         }
         
         $balance_info = $this->coupon_handler->get_gift_certificate_balance($code);
-        
+
         if (!$balance_info) {
             wp_send_json_error('Gift certificate not found or inactive');
         }
-        
-        wp_send_json_success($balance_info);
+
+        $public_info = array(
+            'balance' => $balance_info['balance'],
+            'status'  => $balance_info['status']
+        );
+
+        wp_send_json_success($public_info);
     }
-} 
+}
