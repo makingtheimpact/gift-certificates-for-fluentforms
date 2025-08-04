@@ -187,92 +187,42 @@ $settings = get_option('gift_certificates_ff_settings', array());
                     <p class="description"><?php _e('Enter the field name for the gift certificate design selection (radio/select field). Leave empty to use default design.', 'gift-certificates-fluentforms'); ?></p>
                     <p class="description"><?php _e('This field should contain the design ID as the value (e.g., "default", "design_123").', 'gift-certificates-fluentforms'); ?></p>
                     
-                    <div class="design-mapping-instructions" style="background: #f9f9f9; padding: 15px; margin-top: 10px; border-left: 4px solid #0073aa;">
-                        <h4><?php _e('Design Field Setup Instructions:', 'gift-certificates-fluentforms'); ?></h4>
-                        <ol>
-                            <li><?php _e('In your Fluent Forms form, add a Radio or Select field for design selection', 'gift-certificates-fluentforms'); ?></li>
-                            <li><?php _e('Set the field name to match what you enter above', 'gift-certificates-fluentforms'); ?></li>
-                            <li><?php _e('Configure the options with these exact values:', 'gift-certificates-fluentforms'); ?>
-                                <ul>
-                                    <li><strong>default</strong> - <?php _e('Default design (always available)', 'gift-certificates-fluentforms'); ?></li>
-                                    <?php
-                                    // Get available designs for reference
-                                    $designs = new \GiftCertificatesFluentForms\GiftCertificateDesigns();
-                                    $available_designs = $designs->get_active_designs();
-                                    foreach ($available_designs as $design_id => $design) {
-                                        if ($design_id !== 'default') {
-                                            echo '<li><strong>' . esc_html($design_id) . '</strong> - ' . esc_html($design['name']) . '</li>';
-                                        }
-                                    }
-                                    ?>
-                                </ul>
-                            </li>
-                            <li><?php _e('Set the option labels to user-friendly names (e.g., "Classic Design", "Holiday Theme")', 'gift-certificates-fluentforms'); ?></li>
-                            <li><?php _e('The option values must exactly match the design IDs shown above', 'gift-certificates-fluentforms'); ?></li>
-                        </ol>
+                    <h4><?php _e('Available Design IDs for Reference:', 'gift-certificates-fluentforms'); ?></h4>
+                    <?php
+                    $designs = new \GiftCertificatesFluentForms\GiftCertificateDesigns();
+                    $design_options = $designs->get_design_options_for_form();
+                    
+                    if (!empty($design_options)) {
+                        echo '<table class="widefat" style="margin-top: 10px;">';
+                        echo '<thead><tr><th>' . __('Design ID', 'gift-certificates-fluentforms') . '</th><th>' . __('Design Name', 'gift-certificates-fluentforms') . '</th><th>' . __('Status', 'gift-certificates-fluentforms') . '</th></tr></thead>';
+                        echo '<tbody>';
                         
-                        <h4><?php _e('Example Configuration:', 'gift-certificates-fluentforms'); ?></h4>
-                        <table class="widefat" style="margin-top: 10px;">
-                            <thead>
-                                <tr>
-                                    <th><?php _e('Option Label', 'gift-certificates-fluentforms'); ?></th>
-                                    <th><?php _e('Option Value', 'gift-certificates-fluentforms'); ?></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><?php _e('Classic Design', 'gift-certificates-fluentforms'); ?></td>
-                                    <td><code>default</code></td>
-                                </tr>
-                                <tr>
-                                    <td><?php _e('Holiday Theme', 'gift-certificates-fluentforms'); ?></td>
-                                    <td><code>design_123</code></td>
-                                </tr>
-                                <tr>
-                                    <td><?php _e('Birthday Special', 'gift-certificates-fluentforms'); ?></td>
-                                    <td><code>design_456</code></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        
-                        <p><strong><?php _e('Important Notes:', 'gift-certificates-fluentforms'); ?></strong></p>
-                        <ul>
-                            <li><?php _e('Only active designs will be accepted by the webhook', 'gift-certificates-fluentforms'); ?></li>
-                            <li><?php _e('If an invalid design ID is submitted, the system will automatically use the default design', 'gift-certificates-fluentforms'); ?></li>
-                            <li><?php _e('Design IDs are case-sensitive and must match exactly', 'gift-certificates-fluentforms'); ?></li>
-                            <li><?php _e('You can manage designs in Gift Certificates → Design Templates', 'gift-certificates-fluentforms'); ?></li>
-                        </ul>
-                        
-                        <div class="available-designs-reference" style="margin-top: 15px; padding: 10px; background: #fff; border: 1px solid #ddd;">
-                            <h4><?php _e('Available Design IDs for Reference:', 'gift-certificates-fluentforms'); ?></h4>
-                            <?php
-                            $designs = new \GiftCertificatesFluentForms\GiftCertificateDesigns();
-                            $design_options = $designs->get_design_options_for_form();
+                        foreach ($design_options as $design_id => $design_name) {
+                            $design = $designs->get_design($design_id);
+                            $status = $design && $design['active'] ? __('Active', 'gift-certificates-fluentforms') : __('Inactive', 'gift-certificates-fluentforms');
+                            $status_class = $design && $design['active'] ? 'status-active' : 'status-inactive';
                             
-                            if (!empty($design_options)) {
-                                echo '<table class="widefat" style="margin-top: 10px;">';
-                                echo '<thead><tr><th>' . __('Design ID', 'gift-certificates-fluentforms') . '</th><th>' . __('Design Name', 'gift-certificates-fluentforms') . '</th><th>' . __('Status', 'gift-certificates-fluentforms') . '</th></tr></thead>';
-                                echo '<tbody>';
-                                
-                                foreach ($design_options as $design_id => $design_name) {
-                                    $design = $designs->get_design($design_id);
-                                    $status = $design && $design['active'] ? __('Active', 'gift-certificates-fluentforms') : __('Inactive', 'gift-certificates-fluentforms');
-                                    $status_class = $design && $design['active'] ? 'status-active' : 'status-inactive';
-                                    
-                                    echo '<tr>';
-                                    echo '<td><code>' . esc_html($design_id) . '</code></td>';
-                                    echo '<td>' . esc_html($design_name) . '</td>';
-                                    echo '<td><span class="' . $status_class . '">' . $status . '</span></td>';
-                                    echo '</tr>';
-                                }
-                                
-                                echo '</tbody></table>';
-                            } else {
-                                echo '<p>' . __('No active designs found. Please create designs in Gift Certificates → Design Templates.', 'gift-certificates-fluentforms') . '</p>';
-                            }
-                            ?>
-                        </div>
-                    </div>
+                            echo '<tr>';
+                            echo '<td><code>' . esc_html($design_id) . '</code></td>';
+                            echo '<td>' . esc_html($design_name) . '</td>';
+                            echo '<td><span class="' . $status_class . '">' . $status . '</span></td>';
+                            echo '</tr>';
+                        }
+                        
+                        echo '</tbody></table>';
+                    } else {
+                        echo '<p>' . __('No active designs found. Please create designs in Gift Certificates → Design Templates.', 'gift-certificates-fluentforms') . '</p>';
+                    }
+                    ?>
+                    <h4><?php _e('Design Field Setup Instructions:', 'gift-certificates-fluentforms'); ?></h4>
+                    <ol>
+                        <li><?php _e('In your Fluent Forms form, add a Radio or Select field for design selection', 'gift-certificates-fluentforms'); ?></li>
+                        <li><?php _e('Set the field name to match what you enter above', 'gift-certificates-fluentforms'); ?></li>
+                        <li><?php _e('Configure the options with the exact values shown above.', 'gift-certificates-fluentforms'); ?></li>
+                        <li><?php _e('Set the option labels to user-friendly names (e.g., "Classic Design", "Holiday Theme")', 'gift-certificates-fluentforms'); ?></li>
+                        <li><?php _e('The option values must exactly match the design IDs shown above', 'gift-certificates-fluentforms'); ?></li>
+                    </ol>      
+                    <p>For more detailed instructions on how to set up the design field, please refer to the How to Use page.</p>            
                 </td>
             </tr>
             
@@ -364,7 +314,7 @@ $settings = get_option('gift_certificates_ff_settings', array());
         
         <h3><?php _e('Email Template Variables', 'gift-certificates-fluentforms'); ?></h3>
         <p><?php _e('You can use these variables in your email template:', 'gift-certificates-fluentforms'); ?></p>
-        <ul>
+         <ul style="list-style-type: disc;">
             <li><code>{recipient_name}</code> - <?php _e('Recipient\'s name', 'gift-certificates-fluentforms'); ?></li>
             <li><code>{sender_name}</code> - <?php _e('Sender\'s name', 'gift-certificates-fluentforms'); ?></li>
             <li><code>{amount}</code> - <?php _e('Gift certificate amount', 'gift-certificates-fluentforms'); ?></li>

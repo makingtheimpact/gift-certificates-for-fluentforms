@@ -28,7 +28,7 @@ if (!defined('ABSPATH')) {
                 <li><?php _e('Go to Fluent Forms → All Forms', 'gift-certificates-fluentforms'); ?></li>
                 <li><?php _e('Create a new form or use an existing one', 'gift-certificates-fluentforms'); ?></li>
                 <li><?php _e('Add the following fields to your form:', 'gift-certificates-fluentforms'); ?>
-                    <ul>
+                     <ul style="list-style-type: disc;">
                         <li><strong><?php _e('Amount Field:', 'gift-certificates-fluentforms'); ?></strong> <?php _e('Number or input field for gift certificate amount', 'gift-certificates-fluentforms'); ?></li>
                         <li><strong><?php _e('Recipient Email:', 'gift-certificates-fluentforms'); ?></strong> <?php _e('Email field for the gift certificate recipient', 'gift-certificates-fluentforms'); ?></li>
                         <li><strong><?php _e('Recipient Name:', 'gift-certificates-fluentforms'); ?></strong> <?php _e('Text field for recipient name', 'gift-certificates-fluentforms'); ?></li>
@@ -81,7 +81,7 @@ if (!defined('ABSPATH')) {
             <h3><?php _e('API Endpoints', 'gift-certificates-fluentforms'); ?></h3>
             <p><?php _e('The plugin provides REST API endpoints for balance checking:', 'gift-certificates-fluentforms'); ?></p>
             
-            <ul>
+             <ul style="list-style-type: disc;">
                 <li><strong>GET:</strong> <code><?php echo rest_url('gift-certificates/v1/balance/{code}'); ?></code></li>
                 <li><strong>POST:</strong> <code><?php echo rest_url('gift-certificates/v1/balance'); ?></code></li>
             </ul>
@@ -132,12 +132,65 @@ function checkBalance() {
                 <li><?php _e('Add options corresponding to available design IDs. Ensure the values exactly match the design IDs.', 'gift-certificates-fluentforms'); ?></li>
             </ol>
             
-            <h3><?php _e('Example Setup', 'gift-certificates-fluentforms'); ?></h3>
-            <ul>
-                <li><?php _e('Option Label: "Classic Gift Certificate" | Value: "default"', 'gift-certificates-fluentforms'); ?></li>
-                <li><?php _e('Option Label: "Holiday Special" | Value: "holiday_theme"', 'gift-certificates-fluentforms'); ?></li>
-                <li><?php _e('Option Label: "Birthday Celebration" | Value: "birthday_design"', 'gift-certificates-fluentforms'); ?></li>
+            <h4><?php _e('Example Configuration:', 'gift-certificates-fluentforms'); ?></h4>
+            <table class="widefat" style="margin-top: 10px;">
+                <thead>
+                    <tr>
+                        <th><?php _e('Option Label', 'gift-certificates-fluentforms'); ?></th>
+                        <th><?php _e('Option Value', 'gift-certificates-fluentforms'); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><?php _e('Classic Design', 'gift-certificates-fluentforms'); ?></td>
+                        <td><code>default</code></td>
+                    </tr>
+                    <tr>
+                        <td><?php _e('Holiday Theme', 'gift-certificates-fluentforms'); ?></td>
+                        <td><code>design_123</code></td>
+                    </tr>
+                    <tr>
+                        <td><?php _e('Birthday Special', 'gift-certificates-fluentforms'); ?></td>
+                        <td><code>design_456</code></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p><strong><?php _e('Important Notes:', 'gift-certificates-fluentforms'); ?></strong></p>
+            <ul style="list-style-type: disc;">
+                <li><?php _e('Only active designs will be accepted by the webhook', 'gift-certificates-fluentforms'); ?></li>
+                <li><?php _e('If an invalid design ID is submitted, the system will automatically use the default design', 'gift-certificates-fluentforms'); ?></li>
+                <li><?php _e('Design IDs are case-sensitive and must match exactly', 'gift-certificates-fluentforms'); ?></li>
+                <li><?php _e('You can manage designs in Gift Certificates → Design Templates', 'gift-certificates-fluentforms'); ?></li>
             </ul>
+
+            <h4><?php _e('Available Design IDs for Reference:', 'gift-certificates-fluentforms'); ?></h4>
+            <?php
+            $designs = new \GiftCertificatesFluentForms\GiftCertificateDesigns();
+            $design_options = $designs->get_design_options_for_form();
+            
+            if (!empty($design_options)) {
+                echo '<table class="widefat" style="margin-top: 10px;">';
+                echo '<thead><tr><th>' . __('Design ID', 'gift-certificates-fluentforms') . '</th><th>' . __('Design Name', 'gift-certificates-fluentforms') . '</th><th>' . __('Status', 'gift-certificates-fluentforms') . '</th></tr></thead>';
+                echo '<tbody>';
+                
+                foreach ($design_options as $design_id => $design_name) {
+                    $design = $designs->get_design($design_id);
+                    $status = $design && $design['active'] ? __('Active', 'gift-certificates-fluentforms') : __('Inactive', 'gift-certificates-fluentforms');
+                    $status_class = $design && $design['active'] ? 'status-active' : 'status-inactive';
+                    
+                    echo '<tr>';
+                    echo '<td><code>' . esc_html($design_id) . '</code></td>';
+                    echo '<td>' . esc_html($design_name) . '</td>';
+                    echo '<td><span class="' . $status_class . '">' . $status . '</span></td>';
+                    echo '</tr>';
+                }
+                
+                echo '</tbody></table>';
+            } else {
+                echo '<p>' . __('No active designs found. Please create designs in Gift Certificates → Design Templates.', 'gift-certificates-fluentforms') . '</p>';
+            }
+            ?>
 
             <h3><?php _e('Troubleshooting', 'gift-certificates-fluentforms'); ?></h3>
             <p><?php _e('Ensure that the option values precisely match the design IDs configured in the Design Templates section of the plugin.', 'gift-certificates-fluentforms'); ?></p>
@@ -145,7 +198,7 @@ function checkBalance() {
         
         <div class="help-section" id="shortcodes">
             <h2><?php _e('Shortcodes', 'gift-certificates-fluentforms'); ?></h2>
-            
+             <ul style="list-style-type: disc;">
                 <li><code>placeholder</code> - <?php _e('Custom placeholder text', 'gift-certificates-fluentforms'); ?></li>
                 <li><code>button_text</code> - <?php _e('Custom button text', 'gift-certificates-fluentforms'); ?></li>
                 <li><code>show_instructions</code> - <?php _e('Show/hide instructions (true/false)', 'gift-certificates-fluentforms'); ?></li>
@@ -166,7 +219,7 @@ function checkBalance() {
             <h3><?php _e('Common Issues', 'gift-certificates-fluentforms'); ?></h3>
             
             <h4><?php _e('Gift certificates not being created', 'gift-certificates-fluentforms'); ?></h4>
-            <ul>
+             <ul style="list-style-type: disc;">
                 <li><?php _e('Check that the form ID is correctly set in settings', 'gift-certificates-fluentforms'); ?></li>
                 <li><?php _e('Verify field mapping matches your form field names', 'gift-certificates-fluentforms'); ?></li>
                 <li><?php _e('Check WordPress error logs for any PHP errors', 'gift-certificates-fluentforms'); ?></li>
@@ -177,7 +230,7 @@ function checkBalance() {
             </ul>
             
             <h4><?php _e('Emails not sending', 'gift-certificates-fluentforms'); ?></h4>
-            <ul>
+             <ul style="list-style-type: disc;">
                 <li><?php _e('Check WordPress email configuration', 'gift-certificates-fluentforms'); ?></li>
                 <li><?php _e('Verify email template settings', 'gift-certificates-fluentforms'); ?></li>
                 <li><?php _e('Test email functionality using the Test Email button', 'gift-certificates-fluentforms'); ?></li>
@@ -188,7 +241,7 @@ function checkBalance() {
             <h2><?php _e('Support', 'gift-certificates-fluentforms'); ?></h2>
             
             <p><?php _e('For additional support:', 'gift-certificates-fluentforms'); ?></p>
-            <ul>
+             <ul style="list-style-type: disc;">
                 <li><?php _e('Check the WordPress error logs for detailed error messages', 'gift-certificates-fluentforms'); ?></li>
                 <li><?php _e('Ensure all required plugins are installed and up to date', 'gift-certificates-fluentforms'); ?></li>
                 <li><?php _e('Test with a default WordPress theme to rule out theme conflicts', 'gift-certificates-fluentforms'); ?></li>
