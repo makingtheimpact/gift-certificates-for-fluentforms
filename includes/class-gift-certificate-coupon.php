@@ -359,8 +359,7 @@ class GiftCertificateCoupon {
         return array(
             'balance' => $gift_certificate->current_balance,
             'original_amount' => $gift_certificate->original_amount,
-            'status' => $gift_certificate->status,
-            'recipient_name' => $gift_certificate->recipient_name
+            'status' => $gift_certificate->status
         );
     }
     

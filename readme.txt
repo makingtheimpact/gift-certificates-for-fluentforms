@@ -22,6 +22,9 @@ Gift Certificates for Fluent Forms is a comprehensive solution for managing gift
 2. Activate the plugin through the "Plugins" menu in WordPress.
 3. Go to "Gift Certificates → Settings" to configure form mappings and email options.
 
+== Privacy ==
+Balance endpoints expose only the gift certificate's current balance and status. Recipient information is never returned in API responses to protect personal data.
+
 == Frequently Asked Questions ==
 = Does this plugin require Fluent Forms Pro? =
 Yes. Fluent Forms Pro is needed for coupon functionality and webhook support.
