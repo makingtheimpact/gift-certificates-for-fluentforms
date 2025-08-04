@@ -194,7 +194,7 @@ class GiftCertificateEmail {
                "Amount: \${amount}\n" .
                "Code: {coupon_code}\n\n" .
                "Message from {sender_name}:\n{message}\n\n" .
-               "You can use this gift certificate on {site_name} at {site_url}. To redeem, enter the code in the coupon code field at checkout.\n\n" .
+               "You can use this gift certificate on {site_name} at {site_url}. To redeem, visit our website at {site_url} and enter the code in the coupon code field at checkout.\n\n" .
                "You can check your balance at any time at {balance_check_url}.\n\n" .
                "Thank you!\n\n" .
                "[end]";
@@ -207,7 +207,7 @@ class GiftCertificateEmail {
                "Amount: \${amount}\n" .
                "Code: {coupon_code}\n\n" .
                "Message from {sender_name}:\n{message}\n\n" .
-               "You can use this gift certificate on our website. Simply enter the coupon code during checkout to apply your discount.\n\n" .
+               "You can use this gift certificate on our website. To redeem, visit our website at {site_url} and enter the code in the coupon code field at checkout.\n\n" .
                "You can check your balance at any time at: {balance_check_url}\n\n" .
                "Thank you for choosing {site_name}!\n\n" .
                "{site_name}\n" .
@@ -280,7 +280,7 @@ class GiftCertificateEmail {
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="email-container">
                     <tr>
                         <td class="header">
-                            <h1>🎁 Gift Certificate</h1>
+                            <h1>🎁 {site_name} Gift Certificate</h1>
                         </td>
                     </tr>
                     <tr>

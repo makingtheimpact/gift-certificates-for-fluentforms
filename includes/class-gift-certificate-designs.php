@@ -625,8 +625,8 @@ body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-si
 
 <div class="gift-details">
     <h3>Gift Certificate Details:</h3>
-    <div class="amount">${amount}</div>
-    <div class="coupon-code">{coupon_code}</div>
+    <div class="amount">Amount: ${amount}</div>
+    <div class="coupon-code">Code: {coupon_code}</div>
 </div>
 
 <div class="message">
@@ -634,11 +634,13 @@ body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-si
     {message}
 </div>
 
-<p>You can use this gift certificate on our website. Simply enter the coupon code during checkout to apply your discount.</p>
+<p>You can use this gift certificate on {site_name} at {site_url}. To redeem, visit our website at {site_url} and enter the code in the coupon code field at checkout.</p>
 
 <p style="text-align: center;">
     <a href="{balance_check_url}" class="button">Check Balance</a>
-</p>';
+</p>
+
+<p>If you have any questions or need further assistance, please contact us on our website and we will be happy to assist you.</p>';
     }
 
     /**
