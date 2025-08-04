@@ -694,7 +694,7 @@ body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-si
         }
 
         // Use the email class to send a test email with the selected design
-        $email_sender = new GiftCertificateEmail();
+        $email_sender = GiftCertificateEmail::get_instance();
 
         $sent = $email_sender->send_test_email($email, $design_id);
 

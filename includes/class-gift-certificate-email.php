@@ -9,20 +9,35 @@ if (!defined('ABSPATH')) {
 }
 
 class GiftCertificateEmail {
-    
+
+    private static $instance = null;
+
     private $database;
     private $settings;
-    
-    public function __construct() {
+
+    /**
+     * Get the shared instance of the email handler.
+     *
+     * @return self
+     */
+    public static function get_instance() {
+        if (self::$instance === null) {
+            self::$instance = new self();
+        }
+
+        return self::$instance;
+    }
+
+    private function __construct() {
         $this->database = new GiftCertificateDatabase();
         $this->settings = get_option('gift_certificates_ff_settings', array());
-        
+
         // Hook for scheduled deliveries
         add_action('gift_certificate_scheduled_delivery', array($this, 'send_scheduled_delivery'), 10, 1);
-        
+
         // Hook for daily delivery check
         add_action('gift_certificate_daily_delivery_check', array($this, 'check_pending_deliveries'));
-        
+
         // Schedule daily check if not already scheduled
         if (!wp_next_scheduled('gift_certificate_daily_delivery_check')) {
             wp_schedule_event(time(), 'daily', 'gift_certificate_daily_delivery_check');
