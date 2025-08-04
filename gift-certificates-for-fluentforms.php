@@ -218,7 +218,8 @@ class GiftCertificatesForFluentForms {
             'allowed_form_ids' => array(), // Empty array means all forms are allowed
             'email_template' => $this->get_default_email_template(),
             'api_enabled' => true,
-            'balance_check_enabled' => true
+            'balance_check_enabled' => true,
+            'enable_logging' => (defined('WP_DEBUG') && WP_DEBUG)
         );
         
         add_option('gift_certificates_ff_settings', $default_options);

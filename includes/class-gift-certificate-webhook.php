@@ -83,7 +83,8 @@ class GiftCertificateWebhook {
     private function process_gift_certificate_submission($entry_id, $form_data, $form) {
         try {
             gcff_log("Gift Certificate Webhook: Starting processing - Entry ID: {$entry_id}");
-            gcff_log("Gift Certificate Webhook: Form data: " . print_r($form_data, true));
+            $fields = implode(', ', array_keys((array) $form_data));
+            gcff_log("Gift Certificate Webhook: Form data fields: {$fields}");
             
             // Extract form data using configured field names
             $amount = $this->get_field_value($form_data, $this->settings['amount_field_name']);
@@ -94,11 +95,13 @@ class GiftCertificateWebhook {
             $delivery_date = $this->get_field_value($form_data, $this->settings['delivery_date_field_name']);
             $design_id = $this->get_field_value($form_data, $this->settings['design_field_name']);
             
-            gcff_log("Gift Certificate Webhook: Extracted data - Amount: {$amount}, Email: {$recipient_email}, Name: {$recipient_name}, Design: {$design_id}");
+            $masked_email     = gcff_mask_email($recipient_email);
+            $masked_recipient = gcff_mask_string($recipient_name);
+            gcff_log("Gift Certificate Webhook: Extracted data - Amount: {$amount}, Email: {$masked_email}, Recipient: {$masked_recipient}, Design: {$design_id}");
             
             // Validate required fields
             if (empty($amount) || empty($recipient_email) || empty($recipient_name)) {
-                throw new Exception('Required fields are missing - Amount: ' . ($amount ?: 'empty') . ', Email: ' . ($recipient_email ?: 'empty') . ', Name: ' . ($recipient_name ?: 'empty'));
+                throw new Exception('Required fields are missing - Amount: ' . ($amount ?: 'empty') . ', Email: ' . ($recipient_email ? gcff_mask_email($recipient_email) : 'empty') . ', Name: ' . ($recipient_name ? gcff_mask_string($recipient_name) : 'empty'));
             }
             
             // Validate amount
@@ -142,10 +145,10 @@ class GiftCertificateWebhook {
             $coupon_created = $this->create_fluent_forms_coupon($coupon_code, $amount, $gift_certificate_id);
             
             if (!$coupon_created) {
-                gcff_log("Gift Certificate Webhook: Failed to create Fluent Forms coupon for code: {$coupon_code}");
+                gcff_log("Gift Certificate Webhook: Failed to create Fluent Forms coupon for code: " . gcff_mask_coupon_code($coupon_code));
                 gcff_log("Gift Certificate Webhook: Gift certificate created successfully without coupon - ID: {$gift_certificate_id}");
             } else {
-                gcff_log("Gift Certificate Webhook: Fluent Forms coupon created successfully for code: {$coupon_code}");
+                gcff_log("Gift Certificate Webhook: Fluent Forms coupon created successfully for code: " . gcff_mask_coupon_code($coupon_code));
             }
             
             // Send gift certificate email
@@ -153,7 +156,7 @@ class GiftCertificateWebhook {
             gcff_log("Gift Certificate Webhook: Email sent: " . ($email_sent ? 'Yes' : 'No'));
             
             // Log success
-            gcff_log("Gift certificate created successfully: ID {$gift_certificate_id}, Coupon: {$coupon_code}, Design: {$design_id}");
+            gcff_log("Gift certificate created successfully: ID {$gift_certificate_id}, Coupon: " . gcff_mask_coupon_code($coupon_code) . ", Design: {$design_id}");
             
         } catch (Exception $e) {
             gcff_log("Gift certificate creation failed: " . $e->getMessage());
@@ -208,7 +211,8 @@ class GiftCertificateWebhook {
     private function process_gift_certificate_redemption($entry_id, $form_data, $form) {
         try {
             gcff_log("Gift Certificate Webhook: Starting redemption processing - Entry ID: {$entry_id}");
-            gcff_log("Gift Certificate Webhook: Redemption form data: " . print_r($form_data, true));
+            $fields = implode(', ', array_keys((array) $form_data));
+            gcff_log("Gift Certificate Webhook: Redemption form data fields: {$fields}");
             
             // Look for applied coupons in the form data
             $applied_coupons = array();
@@ -242,7 +246,8 @@ class GiftCertificateWebhook {
                 }
             }
             
-            gcff_log("Gift Certificate Webhook: Applied coupons found: " . print_r($applied_coupons, true));
+            $masked_coupons = array_map('gcff_mask_coupon_code', $applied_coupons);
+            gcff_log("Gift Certificate Webhook: Applied coupons found: " . implode(', ', $masked_coupons));
             
             if (empty($applied_coupons)) {
                 gcff_log("Gift Certificate Webhook: No coupons applied in this submission");
@@ -265,20 +270,24 @@ class GiftCertificateWebhook {
      */
     private function process_single_coupon_redemption($coupon_code, $entry_id, $form_data, $form) {
         try {
-            gcff_log("Gift Certificate Webhook: Processing coupon redemption - Code: {$coupon_code}");
+            gcff_log("Gift Certificate Webhook: Processing coupon redemption - Code: " . gcff_mask_coupon_code($coupon_code));
             
             // Get the gift certificate
-            gcff_log("Gift Certificate Webhook: Looking up gift certificate for coupon code: {$coupon_code}");
+            gcff_log("Gift Certificate Webhook: Looking up gift certificate for coupon code: " . gcff_mask_coupon_code($coupon_code));
             $gift_certificate = $this->database->get_active_gift_certificate_by_coupon_code($coupon_code);
             
             if (!$gift_certificate) {
-                gcff_log("Gift Certificate Webhook: Active gift certificate not found for coupon code: {$coupon_code}");
+                gcff_log("Gift Certificate Webhook: Active gift certificate not found for coupon code: " . gcff_mask_coupon_code($coupon_code));
                 
                 // Let's also check if there are any gift certificates in the database
                 global $wpdb;
                 $table_name = $wpdb->prefix . 'gift_certificates_ff';
                 $all_certificates = $wpdb->get_results("SELECT coupon_code, status FROM {$table_name} LIMIT 5");
-                gcff_log("Gift Certificate Webhook: Available certificates in database: " . print_r($all_certificates, true));
+                $sample = array();
+                foreach ($all_certificates as $cert) {
+                    $sample[] = gcff_mask_coupon_code($cert->coupon_code) . ' (' . $cert->status . ')';
+                }
+                gcff_log("Gift Certificate Webhook: Sample certificates in database: " . implode(', ', $sample));
                 
                 return;
             }
@@ -328,10 +337,10 @@ class GiftCertificateWebhook {
             // Update the Fluent Forms coupon amount to reflect the new balance
             $this->update_fluent_forms_coupon_amount($coupon_code, $new_balance);
             
-            gcff_log("Gift Certificate Webhook: Coupon redemption successful - Code: {$coupon_code}, Amount deducted: {$amount_to_deduct}, New balance: {$new_balance}");
+            gcff_log("Gift Certificate Webhook: Coupon redemption successful - Code: " . gcff_mask_coupon_code($coupon_code) . ", Amount deducted: {$amount_to_deduct}, New balance: {$new_balance}");
             
         } catch (Exception $e) {
-            gcff_log("Gift Certificate Webhook: Single coupon redemption failed - Code: {$coupon_code}, Error: " . $e->getMessage());
+            gcff_log("Gift Certificate Webhook: Single coupon redemption failed - Code: " . gcff_mask_coupon_code($coupon_code) . ", Error: " . $e->getMessage());
         }
     }
     
@@ -418,7 +427,7 @@ class GiftCertificateWebhook {
                 ->first();
             
             if (!$coupon) {
-                gcff_log("Gift Certificate Webhook: Coupon not found for update - Code: {$coupon_code}");
+                gcff_log("Gift Certificate Webhook: Coupon not found for update - Code: " . gcff_mask_coupon_code($coupon_code));
                 return false;
             }
             
@@ -439,10 +448,10 @@ class GiftCertificateWebhook {
                 ));
             
             if ($result) {
-                gcff_log("Gift Certificate Webhook: Fluent Forms coupon amount updated successfully - Code: {$coupon_code}, New Amount: {$new_amount}");
+                gcff_log("Gift Certificate Webhook: Fluent Forms coupon amount updated successfully - Code: " . gcff_mask_coupon_code($coupon_code) . ", New Amount: {$new_amount}");
                 return true;
             } else {
-                gcff_log("Gift Certificate Webhook: Failed to update Fluent Forms coupon amount - Code: {$coupon_code}");
+                gcff_log("Gift Certificate Webhook: Failed to update Fluent Forms coupon amount - Code: " . gcff_mask_coupon_code($coupon_code));
                 return false;
             }
             
@@ -487,7 +496,7 @@ class GiftCertificateWebhook {
     }
     
     private function create_fluent_forms_coupon($coupon_code, $amount, $gift_certificate_id) {
-        gcff_log("Gift Certificate Webhook: Attempting to create Fluent Forms coupon - Code: {$coupon_code}, Amount: {$amount}");
+        gcff_log("Gift Certificate Webhook: Attempting to create Fluent Forms coupon - Code: " . gcff_mask_coupon_code($coupon_code) . ", Amount: {$amount}");
         
         // Check if Fluent Forms Pro is active
         if (!function_exists('is_plugin_active')) {
@@ -546,13 +555,13 @@ class GiftCertificateWebhook {
                 'updated_at' => current_time('mysql')
             );
             
-            gcff_log("Gift Certificate Webhook: Coupon data prepared: " . print_r($coupon_data, true));
+            gcff_log("Gift Certificate Webhook: Coupon data prepared for code: " . gcff_mask_coupon_code($coupon_code));
             
             // Insert coupon directly into the correct table
             $coupon_id = wpFluent()->table($coupon_table_name)->insert($coupon_data);
             
             if ($coupon_id) {
-                gcff_log("Gift Certificate Webhook: Fluent Forms coupon created successfully - ID: {$coupon_id}, Code: {$coupon_code}");
+                gcff_log("Gift Certificate Webhook: Fluent Forms coupon created successfully - ID: {$coupon_id}, Code: " . gcff_mask_coupon_code($coupon_code));
                 return true;
             } else {
                 gcff_log("Gift Certificate Webhook: Fluent Forms coupon creation failed - no ID returned");
