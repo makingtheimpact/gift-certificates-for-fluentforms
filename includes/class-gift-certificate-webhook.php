@@ -548,7 +548,7 @@ class GiftCertificateWebhook {
                 'settings' => serialize($settings),
                 'created_by' => get_current_user_id() ?: 1,
                 'min_amount' => 0,
-                'max_use' => 1, // Can only be used once
+                'max_use' => 0, // Allow unlimited uses until balance is exhausted
                 'start_date' => current_time('Y-m-d'),
                 'expire_date' => date('Y-m-d', strtotime('+1 year')),
                 'created_at' => current_time('mysql'),

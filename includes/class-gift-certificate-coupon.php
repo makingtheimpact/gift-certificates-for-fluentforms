@@ -146,6 +146,22 @@ class GiftCertificateCoupon {
         // Update Fluent Forms Pro coupon amount if there's remaining balance
         if ($new_balance > 0) {
             $this->update_fluent_forms_coupon_amount($coupon->code, $new_balance);
+
+            // Reset usage count so the coupon can be applied again
+            $coupon_table_name = $this->get_coupon_table_name();
+            if ($this->table_exists($coupon_table_name)) {
+                try {
+                    wpFluent()->table($coupon_table_name)
+                        ->where('code', $coupon->code)
+                        ->update(array(
+                            'usage_count' => 0,
+                            'max_use' => 0,
+                            'updated_at' => current_time('mysql')
+                        ));
+                } catch (Exception $e) {
+                    gcff_log("Gift Certificate: Failed to reset coupon usage: " . $e->getMessage());
+                }
+            }
         }
         
         // Remove from transient
