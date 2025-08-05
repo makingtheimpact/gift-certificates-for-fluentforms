@@ -76,33 +76,53 @@ class GiftCertificateCoupon {
             return;
         }
         
-        // Store gift certificate info in session for later processing
+        // Store gift certificate info in a transient keyed by a session token
         $gift_certificate = $this->database->get_gift_certificate_by_coupon_code($coupon->code);
-        
+
         if ($gift_certificate) {
-            // Use WordPress session or transient for Fluent Forms
-            set_transient("gift_certificate_{$submission_id}", array(
+            if (session_status() !== PHP_SESSION_ACTIVE) {
+                session_start();
+            }
+
+            // Generate a token that persists across requests and store it in the session
+            $token = wp_generate_password(12, false);
+            $_SESSION['gcff_coupon_token'] = $token;
+
+            set_transient("gift_certificate_{$token}", array(
                 'gift_certificate_id' => $gift_certificate->id,
-                'coupon_code' => $coupon->code,
-                'amount_applied' => $coupon->amount
+                'coupon_code'      => $coupon->code,
+                'amount_applied'   => $coupon->amount
             ), HOUR_IN_SECONDS);
         }
     }
-    
+
     public function handle_coupon_removed($coupon, $submission_id) {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+
         // Remove gift certificate info from session
-        delete_transient("gift_certificate_{$submission_id}");
+        if (!empty($_SESSION['gcff_coupon_token'])) {
+            delete_transient('gift_certificate_' . $_SESSION['gcff_coupon_token']);
+            unset($_SESSION['gcff_coupon_token']);
+        }
     }
-    
+
     public function track_coupon_usage($coupon, $form_data, $submission_id) {
         // Check if this is a gift certificate coupon
         if (!$this->is_gift_certificate_coupon($coupon)) {
             return;
         }
-        
+
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+
+        $token = $_SESSION['gcff_coupon_token'] ?? '';
+
         // Get gift certificate info from transient
-        $gift_certificate_info = get_transient("gift_certificate_{$submission_id}");
-        
+        $gift_certificate_info = get_transient('gift_certificate_' . $token);
+
         if (!$gift_certificate_info) {
             return;
         }
@@ -142,8 +162,9 @@ class GiftCertificateCoupon {
             $this->update_fluent_forms_coupon_amount($coupon->code, $new_balance);
         }
         
-        // Remove from transient
-        delete_transient("gift_certificate_{$submission_id}");
+        // Remove from transient and clear session token
+        delete_transient('gift_certificate_' . $token);
+        unset($_SESSION['gcff_coupon_token']);
         
         // Log transaction
         gcff_log("Gift certificate used: ID {$gift_certificate_id}, Amount: {$amount_used}, New Balance: {$new_balance}");
@@ -381,22 +402,27 @@ class GiftCertificateCoupon {
     }
     
     public function handle_form_submission_with_coupon($entry_id, $form_data, $form) {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+
         // Check if this form submission used a gift certificate coupon
-        $gift_certificate_info = get_transient("gift_certificate_{$entry_id}");
-        
+        $token = $_SESSION['gcff_coupon_token'] ?? '';
+        $gift_certificate_info = get_transient('gift_certificate_' . $token);
+
         if (!$gift_certificate_info) {
             return;
         }
-        
+
         // Get the coupon that was used
         $coupon_code = $gift_certificate_info['coupon_code'];
         $coupon_table_name = $this->get_coupon_table_name();
-        
+
         try {
             $coupon = wpFluent()->table($coupon_table_name)
                 ->where('code', $coupon_code)
                 ->first();
-                
+
             if ($coupon) {
                 // Track the coupon usage
                 $this->track_coupon_usage($coupon, $form_data, $entry_id);
