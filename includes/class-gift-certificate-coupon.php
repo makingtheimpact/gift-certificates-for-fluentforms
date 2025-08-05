@@ -123,18 +123,19 @@ class GiftCertificateCoupon {
             return;
         }
         
-        // Calculate new balance
-        $new_balance = $gift_certificate->current_balance - $amount_used;
-        
-        // Ensure balance doesn't go below zero
-        if ($new_balance < 0) {
-            $new_balance = 0;
+        if ($amount_used > $gift_certificate->current_balance) {
             $amount_used = $gift_certificate->current_balance;
         }
-        
-        // Update gift certificate balance
-        $this->database->update_gift_certificate_balance($gift_certificate_id, $new_balance);
-        
+
+        $update_result = $this->database->update_gift_certificate_balance($gift_certificate_id, $amount_used);
+
+        if (empty($update_result) || empty($update_result['rows_affected'])) {
+            gcff_log("Gift certificate balance update conflict: ID {$gift_certificate_id}");
+            return;
+        }
+
+        $new_balance = $update_result['new_balance'];
+
         // Record transaction
         $this->database->record_transaction(
             $gift_certificate_id,
@@ -142,7 +143,7 @@ class GiftCertificateCoupon {
             null,
             $submission_id
         );
-        
+
         // Update Fluent Forms Pro coupon amount if there's remaining balance
         if ($new_balance > 0) {
             $this->update_fluent_forms_coupon_amount($coupon->code, $new_balance);
