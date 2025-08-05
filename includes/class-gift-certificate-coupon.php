@@ -81,6 +81,7 @@ class GiftCertificateCoupon {
             $amount_used = max(0, floatval($coupon->amount));
         }
 
+
         if ($amount_used <= 0) {
             $amount_used = $this->calculate_order_total($form_data);
         }
@@ -96,7 +97,17 @@ class GiftCertificateCoupon {
             $new_balance = 0;
             $amount_used = $gift_certificate->current_balance;
         }
+
+        $update_result = $this->database->update_gift_certificate_balance($gift_certificate_id, $amount_used);
+
+        if (empty($update_result) || empty($update_result['rows_affected'])) {
+            gcff_log("Gift certificate balance update conflict: ID {$gift_certificate_id}");
+            return;
+        }
+
+        $new_balance = $update_result['new_balance'];
         
+
         // Update gift certificate balance
         $this->database->update_gift_certificate_balance($gift_certificate->id, $new_balance);
 
@@ -107,12 +118,13 @@ class GiftCertificateCoupon {
             null,
             $submission_id
         );
-        
+
         // Update Fluent Forms Pro coupon amount if there's remaining balance
         if ($new_balance > 0) {
             $this->update_fluent_forms_coupon_amount($coupon->code, $new_balance);
 
-            // Reset usage count so the coupon can be applied again
+        // Reset coupon usage if there's remaining balance
+        if ($new_balance > 0) {
             $coupon_table_name = $this->get_coupon_table_name();
             if ($this->table_exists($coupon_table_name)) {
                 try {
@@ -129,8 +141,34 @@ class GiftCertificateCoupon {
             }
         }
 
+        // Remove from transient
+        delete_transient("gift_certificate_{$submission_id}");
+
         // Log transaction
         gcff_log("Gift certificate used: ID {$gift_certificate->id}, Amount: {$amount_used}, New Balance: {$new_balance}");
+    }
+
+    /**
+     * Perform subtraction using integer cents to maintain two-decimal precision.
+     *
+     * @param float|string $balance Current balance.
+     * @param float|string $amount  Amount to subtract.
+     *
+     * @return array{amount_used: float, new_balance: float}
+     */
+    protected function calculate_new_balance($balance, $amount) {
+        $balance_cents = (int) round(((float) $balance) * 100);
+        $amount_cents  = (int) round(((float) $amount) * 100);
+
+        // Prevent overdraft
+        $amount_cents = min($balance_cents, $amount_cents);
+
+        $new_balance_cents = $balance_cents - $amount_cents;
+
+        return array(
+            'amount_used' => $amount_cents / 100,
+            'new_balance' => $new_balance_cents / 100,
+        );
     }
     
     private function is_gift_certificate_coupon($coupon) {
@@ -305,8 +343,10 @@ class GiftCertificateCoupon {
      */
     private function get_coupon_table_name() {
         $settings = get_option('gift_certificates_ff_settings', array());
-        $custom_table_name = $settings['coupon_table_name'] ?? '';
-        
+        $custom_table_name = isset($settings['coupon_table_name'])
+            ? sanitize_key($settings['coupon_table_name'])
+            : '';
+
         if (!empty($custom_table_name)) {
             // Remove wp_ prefix if present since wpFluent() adds it automatically
             return str_replace('wp_', '', $custom_table_name);
@@ -325,7 +365,9 @@ class GiftCertificateCoupon {
         try {
             // For checking existence, we need the full table name with prefix
             $full_table_name = $wpdb->prefix . $table_name;
-            $table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$full_table_name}'") === $full_table_name;
+            $table_exists = $wpdb->get_var(
+                $wpdb->prepare('SHOW TABLES LIKE %s', $full_table_name)
+            ) === $full_table_name;
             return $table_exists;
         } catch (Exception $e) {
             gcff_log("Gift Certificate: Error checking table '{$full_table_name}': " . $e->getMessage());
