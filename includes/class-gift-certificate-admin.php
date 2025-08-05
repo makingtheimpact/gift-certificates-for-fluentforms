@@ -839,7 +839,7 @@ class GiftCertificateAdmin {
                 'settings' => serialize($settings),
                 'created_by' => get_current_user_id() ?: 1,
                 'min_amount' => 0,
-                'max_use' => 1,
+                'max_use' => 0,
                 'start_date' => current_time('Y-m-d'),
                 'expire_date' => date('Y-m-d', strtotime('+1 year')),
                 'created_at' => current_time('mysql'),
