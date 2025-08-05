@@ -81,35 +81,20 @@ class GiftCertificateCoupon {
             $amount_used = max(0, floatval($coupon->amount));
         }
 
-
         if ($amount_used <= 0) {
             $amount_used = $this->calculate_order_total($form_data);
         }
 
-        // Ensure the amount does not exceed the current balance
-        $amount_used = min($amount_used, floatval($gift_certificate->current_balance));
-
-        // Calculate new balance
-        $new_balance = $gift_certificate->current_balance - $amount_used;
-        
-        // Ensure balance doesn't go below zero
-        if ($new_balance < 0) {
-            $new_balance = 0;
-            $amount_used = $gift_certificate->current_balance;
-        }
-
-        $update_result = $this->database->update_gift_certificate_balance($gift_certificate_id, $amount_used);
+        // Update balance in the database and retrieve the actual amount used
+        $update_result = $this->database->update_gift_certificate_balance($gift_certificate->id, $amount_used);
 
         if (empty($update_result) || empty($update_result['rows_affected'])) {
-            gcff_log("Gift certificate balance update conflict: ID {$gift_certificate_id}");
+            gcff_log("Gift certificate balance update conflict: ID {$gift_certificate->id}");
             return;
         }
 
         $new_balance = $update_result['new_balance'];
-        
-
-        // Update gift certificate balance
-        $this->database->update_gift_certificate_balance($gift_certificate->id, $new_balance);
+        $amount_used = $update_result['amount_used'];
 
         // Record transaction
         $this->database->record_transaction(
@@ -119,12 +104,10 @@ class GiftCertificateCoupon {
             $submission_id
         );
 
-        // Update Fluent Forms Pro coupon amount if there's remaining balance
+        // Update Fluent Forms Pro coupon amount and reset usage if there's remaining balance
         if ($new_balance > 0) {
             $this->update_fluent_forms_coupon_amount($coupon->code, $new_balance);
 
-        // Reset coupon usage if there's remaining balance
-        if ($new_balance > 0) {
             $coupon_table_name = $this->get_coupon_table_name();
             if ($this->table_exists($coupon_table_name)) {
                 try {
@@ -132,10 +115,10 @@ class GiftCertificateCoupon {
                         ->where('code', $coupon->code)
                         ->update(array(
                             'usage_count' => 0,
-                            'max_use' => 0,
-                            'updated_at' => current_time('mysql')
+                            'max_use'     => 0,
+                            'updated_at'  => current_time('mysql')
                         ));
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     gcff_log("Gift Certificate: Failed to reset coupon usage: " . $e->getMessage());
                 }
             }
@@ -281,7 +264,7 @@ class GiftCertificateCoupon {
                 return false;
             }
             
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             gcff_log("Failed to deactivate Fluent Forms coupon: " . $e->getMessage());
             return false;
         }
@@ -332,7 +315,7 @@ class GiftCertificateCoupon {
                 return false;
             }
             
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             gcff_log("Failed to update Fluent Forms coupon amount: " . $e->getMessage());
             return false;
         }
@@ -369,7 +352,7 @@ class GiftCertificateCoupon {
                 $wpdb->prepare('SHOW TABLES LIKE %s', $full_table_name)
             ) === $full_table_name;
             return $table_exists;
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             gcff_log("Gift Certificate: Error checking table '{$full_table_name}': " . $e->getMessage());
             return false;
         }
