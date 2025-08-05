@@ -132,14 +132,18 @@ class GiftCertificateCoupon {
         // Update gift certificate balance
         $this->database->update_gift_certificate_balance($gift_certificate_id, $new_balance);
         
-        // Calculate new balance
-        $new_balance = $gift_certificate->current_balance - $amount_used;
-        
-        // Ensure balance doesn't go below zero
-        if ($new_balance < 0) {
-            $new_balance = 0;
+        if ($amount_used > $gift_certificate->current_balance) {
             $amount_used = $gift_certificate->current_balance;
         }
+
+        $update_result = $this->database->update_gift_certificate_balance($gift_certificate_id, $amount_used);
+
+        if (empty($update_result) || empty($update_result['rows_affected'])) {
+            gcff_log("Gift certificate balance update conflict: ID {$gift_certificate_id}");
+            return;
+        }
+
+        $new_balance = $update_result['new_balance'];
         
         // Start a database transaction to keep balance and coupon updates in sync
         global $wpdb;
@@ -167,6 +171,10 @@ class GiftCertificateCoupon {
             null,
             $submission_id
         );
+
+        // Update Fluent Forms Pro coupon amount if there's remaining balance
+        if ($new_balance > 0) {
+            $this->update_fluent_forms_coupon_amount($coupon->code, $new_balance);
 
         // Reset coupon usage if there's remaining balance
         if ($new_balance > 0) {
@@ -388,8 +396,10 @@ class GiftCertificateCoupon {
      */
     private function get_coupon_table_name() {
         $settings = get_option('gift_certificates_ff_settings', array());
-        $custom_table_name = $settings['coupon_table_name'] ?? '';
-        
+        $custom_table_name = isset($settings['coupon_table_name'])
+            ? sanitize_key($settings['coupon_table_name'])
+            : '';
+
         if (!empty($custom_table_name)) {
             // Remove wp_ prefix if present since wpFluent() adds it automatically
             return str_replace('wp_', '', $custom_table_name);
@@ -408,7 +418,9 @@ class GiftCertificateCoupon {
         try {
             // For checking existence, we need the full table name with prefix
             $full_table_name = $wpdb->prefix . $table_name;
-            $table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$full_table_name}'") === $full_table_name;
+            $table_exists = $wpdb->get_var(
+                $wpdb->prepare('SHOW TABLES LIKE %s', $full_table_name)
+            ) === $full_table_name;
             return $table_exists;
         } catch (Exception $e) {
             gcff_log("Gift Certificate: Error checking table '{$full_table_name}': " . $e->getMessage());
