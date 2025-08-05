@@ -17,14 +17,9 @@ class GiftCertificateCoupon {
         
         // Hook into Fluent Forms Pro coupon validation
         add_filter('fluentformpro_coupon_validation', array($this, 'validate_gift_certificate_coupon'), 10, 3);
-        add_action('fluentformpro_coupon_applied', array($this, 'handle_coupon_applied'), 10, 3);
-        add_action('fluentformpro_coupon_removed', array($this, 'handle_coupon_removed'), 10, 2);
-        
-        // Hook into coupon usage tracking
-        add_action('fluentformpro_coupon_used', array($this, 'track_coupon_usage'), 10, 3);
 
-        // Hook into form submission completion to track coupon usage
-        add_action('fluentform/form_submission_completed', array($this, 'handle_form_submission_with_coupon'), 10, 3);
+        // Track coupon usage when Fluent Forms registers a coupon as used
+        add_action('fluentformpro_coupon_used', array($this, 'track_coupon_usage'), 10, 3);
 
         // Listen for gift certificates reaching zero balance to deactivate coupons
         add_action('gcff_gift_certificate_balance_zero', array($this, 'deactivate_fluent_forms_coupon'));
@@ -66,39 +61,6 @@ class GiftCertificateCoupon {
         return true;
     }
     
-    public function handle_coupon_applied($coupon, $form_data, $submission_id) {
-        // Check if this is a gift certificate coupon
-        if (!$this->is_gift_certificate_coupon($coupon)) {
-            return;
-        }
-        
-        // Store gift certificate info in session for later processing
-        $gift_certificate = $this->database->get_gift_certificate_by_coupon_code($coupon->code);
-        
-        if ($gift_certificate) {
-            // Determine how much of the certificate is being used
-            $amount_applied = min(
-                $this->calculate_order_total($form_data),
-                $gift_certificate->current_balance
-            );
-
-            // Store the applied amount for later processing
-            set_transient(
-                "gift_certificate_{$submission_id}",
-                array(
-                    'gift_certificate_id' => $gift_certificate->id,
-                    'coupon_code'        => $coupon->code,
-                    'amount_applied'     => $amount_applied
-                ),
-                HOUR_IN_SECONDS
-            );
-        }
-    }
-    
-    public function handle_coupon_removed($coupon, $submission_id) {
-        // Remove gift certificate info from session
-        delete_transient("gift_certificate_{$submission_id}");
-    }
     
     public function track_coupon_usage($coupon, $form_data, $submission_id) {
         // Check if this is a gift certificate coupon
@@ -106,23 +68,26 @@ class GiftCertificateCoupon {
             return;
         }
         
-        // Get gift certificate info from transient
-        $gift_certificate_info = get_transient("gift_certificate_{$submission_id}");
-        
-        if (!$gift_certificate_info) {
-            return;
-        }
-        
-        $gift_certificate_id = $gift_certificate_info['gift_certificate_id'];
-        $amount_used = $gift_certificate_info['amount_applied'];
-        
-        // Get current gift certificate
-        $gift_certificate = $this->database->get_gift_certificate($gift_certificate_id);
-        
+        // Look up the related gift certificate
+        $gift_certificate = $this->database->get_gift_certificate_by_coupon_code($coupon->code);
+
         if (!$gift_certificate) {
             return;
         }
-        
+
+        // Determine the amount used. Prefer the coupon's amount and fall back to recalculating
+        $amount_used = 0;
+        if (isset($coupon->amount)) {
+            $amount_used = max(0, floatval($coupon->amount));
+        }
+
+        if ($amount_used <= 0) {
+            $amount_used = $this->calculate_order_total($form_data);
+        }
+
+        // Ensure the amount does not exceed the current balance
+        $amount_used = min($amount_used, floatval($gift_certificate->current_balance));
+
         // Calculate new balance
         $new_balance = $gift_certificate->current_balance - $amount_used;
         
@@ -133,11 +98,11 @@ class GiftCertificateCoupon {
         }
         
         // Update gift certificate balance
-        $this->database->update_gift_certificate_balance($gift_certificate_id, $new_balance);
-        
+        $this->database->update_gift_certificate_balance($gift_certificate->id, $new_balance);
+
         // Record transaction
         $this->database->record_transaction(
-            $gift_certificate_id,
+            $gift_certificate->id,
             $amount_used,
             null,
             $submission_id
@@ -163,12 +128,9 @@ class GiftCertificateCoupon {
                 }
             }
         }
-        
-        // Remove from transient
-        delete_transient("gift_certificate_{$submission_id}");
-        
+
         // Log transaction
-        gcff_log("Gift certificate used: ID {$gift_certificate_id}, Amount: {$amount_used}, New Balance: {$new_balance}");
+        gcff_log("Gift certificate used: ID {$gift_certificate->id}, Amount: {$amount_used}, New Balance: {$new_balance}");
     }
     
     private function is_gift_certificate_coupon($coupon) {
@@ -402,29 +364,4 @@ class GiftCertificateCoupon {
         return $gift_certificate && $gift_certificate->status === 'active';
     }
     
-    public function handle_form_submission_with_coupon($entry_id, $form_data, $form) {
-        // Check if this form submission used a gift certificate coupon
-        $gift_certificate_info = get_transient("gift_certificate_{$entry_id}");
-        
-        if (!$gift_certificate_info) {
-            return;
-        }
-        
-        // Get the coupon that was used
-        $coupon_code = $gift_certificate_info['coupon_code'];
-        $coupon_table_name = $this->get_coupon_table_name();
-        
-        try {
-            $coupon = wpFluent()->table($coupon_table_name)
-                ->where('code', $coupon_code)
-                ->first();
-                
-            if ($coupon) {
-                // Track the coupon usage
-                $this->track_coupon_usage($coupon, $form_data, $entry_id);
-            }
-        } catch (Exception $e) {
-            gcff_log("Gift Certificate: Error tracking coupon usage: " . $e->getMessage());
-        }
-    }
-} 
+}
