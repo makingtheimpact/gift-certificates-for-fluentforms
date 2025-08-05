@@ -184,31 +184,70 @@ class GiftCertificateDatabase {
     
     public function update_gift_certificate($id, $data) {
         global $wpdb;
-        
+
         // Sanitize data
         $sanitized_data = array();
-        
-        if (isset($data['status'])) {
-            $sanitized_data['status'] = sanitize_text_field($data['status']);
+        $format = array();
+
+        if (isset($data['coupon_code'])) {
+            $sanitized_data['coupon_code'] = sanitize_text_field($data['coupon_code']);
+            $format[] = '%s';
         }
-        
+
+        if (isset($data['original_amount'])) {
+            $sanitized_data['original_amount'] = floatval($data['original_amount']);
+            $format[] = '%f';
+        }
+
         if (isset($data['current_balance'])) {
             $sanitized_data['current_balance'] = floatval($data['current_balance']);
+            $format[] = '%f';
         }
-        
+
+        if (isset($data['recipient_email'])) {
+            $sanitized_data['recipient_email'] = sanitize_email($data['recipient_email']);
+            $format[] = '%s';
+        }
+
+        if (isset($data['recipient_name'])) {
+            $sanitized_data['recipient_name'] = sanitize_text_field($data['recipient_name']);
+            $format[] = '%s';
+        }
+
+        if (isset($data['sender_name'])) {
+            $sanitized_data['sender_name'] = sanitize_text_field($data['sender_name']);
+            $format[] = '%s';
+        }
+
         if (isset($data['message'])) {
             $sanitized_data['message'] = sanitize_textarea_field($data['message']);
+            $format[] = '%s';
         }
-        
+
+        if (isset($data['delivery_date'])) {
+            $sanitized_data['delivery_date'] = sanitize_text_field($data['delivery_date']);
+            $format[] = '%s';
+        }
+
+        if (isset($data['design_id'])) {
+            $sanitized_data['design_id'] = sanitize_text_field($data['design_id']);
+            $format[] = '%s';
+        }
+
+        if (isset($data['status'])) {
+            $sanitized_data['status'] = sanitize_text_field($data['status']);
+            $format[] = '%s';
+        }
+
         if (empty($sanitized_data)) {
             return false;
         }
-        
+
         return $wpdb->update(
             $this->gift_certificates_table,
             $sanitized_data,
             array('id' => $id),
-            array_fill(0, count($sanitized_data), '%s'),
+            $format,
             array('%d')
         );
     }
