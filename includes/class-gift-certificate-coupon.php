@@ -59,14 +59,10 @@ class GiftCertificateCoupon {
             return false;
         }
         
-        // Check if the order amount is within the available balance
-        $order_total = $this->calculate_order_total($form_data);
-        
-        if ($order_total > $gift_certificate->current_balance) {
-            // Adjust coupon amount to available balance
-            $coupon->amount = $gift_certificate->current_balance;
-        }
-        
+        // Check the order total and set coupon amount accordingly
+        $order_total   = $this->calculate_order_total($form_data);
+        $coupon->amount = min($order_total, $gift_certificate->current_balance);
+
         return true;
     }
     
@@ -80,12 +76,22 @@ class GiftCertificateCoupon {
         $gift_certificate = $this->database->get_gift_certificate_by_coupon_code($coupon->code);
         
         if ($gift_certificate) {
-            // Use WordPress session or transient for Fluent Forms
-            set_transient("gift_certificate_{$submission_id}", array(
-                'gift_certificate_id' => $gift_certificate->id,
-                'coupon_code' => $coupon->code,
-                'amount_applied' => $coupon->amount
-            ), HOUR_IN_SECONDS);
+            // Determine how much of the certificate is being used
+            $amount_applied = min(
+                $this->calculate_order_total($form_data),
+                $gift_certificate->current_balance
+            );
+
+            // Store the applied amount for later processing
+            set_transient(
+                "gift_certificate_{$submission_id}",
+                array(
+                    'gift_certificate_id' => $gift_certificate->id,
+                    'coupon_code'        => $coupon->code,
+                    'amount_applied'     => $amount_applied
+                ),
+                HOUR_IN_SECONDS
+            );
         }
     }
     
