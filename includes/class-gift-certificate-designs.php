@@ -75,6 +75,11 @@ class GiftCertificateDesigns {
     
     public function designs_page() {
         $designs = $this->get_designs();
+        // Remove the default design from the list to prevent duplication
+        if (isset($designs['default'])) {
+            unset($designs['default']);
+        }
+
         $default_design = $this->get_design('default'); // This will get saved default or built-in default
         ?>
         <div class="wrap">
