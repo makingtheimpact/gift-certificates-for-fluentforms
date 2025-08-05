@@ -106,6 +106,7 @@ class GiftCertificateAPI {
 
         $public_info = array(
             'balance' => $balance_info['balance'],
+            'original_amount' => $balance_info['original_amount'],
             'status'  => $balance_info['status']
         );
 
@@ -127,6 +128,7 @@ class GiftCertificateAPI {
 
         $public_info = array(
             'balance' => $balance_info['balance'],
+            'original_amount' => $balance_info['original_amount'],
             'status'  => $balance_info['status']
         );
 
