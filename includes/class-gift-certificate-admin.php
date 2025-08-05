@@ -53,6 +53,15 @@ class GiftCertificateAdmin {
             'gift-certificates-ff-list',
             array($this, 'certificates_list_page')
         );
+
+        add_submenu_page(
+            'gift-certificates-ff',
+            __('Add New', 'gift-certificates-fluentforms'),
+            __('Add New', 'gift-certificates-fluentforms'),
+            'manage_options',
+            'gift-certificates-ff-add',
+            array($this, 'edit_certificate_page')
+        );
         
         add_submenu_page(
             'gift-certificates-ff',
@@ -154,8 +163,78 @@ class GiftCertificateAdmin {
         
         $certificates = $this->database->get_gift_certificates($args);
         $total = $this->database->get_gift_certificates_count($args);
-        
+
         include GIFT_CERTIFICATES_FF_PLUGIN_DIR . 'admin/views/certificates-list.php';
+    }
+
+    public function edit_certificate_page() {
+        $certificate_id = isset($_GET['certificate_id']) ? intval($_GET['certificate_id']) : 0;
+        $certificate = null;
+        $is_edit = false;
+
+        if ($certificate_id) {
+            $certificate = $this->database->get_gift_certificate($certificate_id);
+            $is_edit = (bool) $certificate;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            check_admin_referer('gcff_save_certificate');
+
+            if (!current_user_can('manage_options')) {
+                wp_die('Permission denied');
+            }
+
+            $data = array(
+                'coupon_code' => sanitize_text_field($_POST['coupon_code'] ?? ''),
+                'original_amount' => floatval($_POST['original_amount'] ?? 0),
+                'current_balance' => floatval($_POST['current_balance'] ?? 0),
+                'recipient_email' => sanitize_email($_POST['recipient_email'] ?? ''),
+                'recipient_name' => sanitize_text_field($_POST['recipient_name'] ?? ''),
+                'sender_name' => sanitize_text_field($_POST['sender_name'] ?? ''),
+                'message' => sanitize_textarea_field($_POST['message'] ?? ''),
+                'delivery_date' => sanitize_text_field($_POST['delivery_date'] ?? ''),
+                'design_id' => sanitize_text_field($_POST['design_id'] ?? 'default'),
+                'status' => sanitize_text_field($_POST['status'] ?? 'active')
+            );
+
+            $coupon_code = $data['coupon_code'];
+            $amount = $data['current_balance'];
+
+            if ($is_edit) {
+                $old_code = $certificate->coupon_code;
+                $this->database->update_gift_certificate($certificate_id, $data);
+
+                if ($old_code !== $coupon_code || $certificate->current_balance != $amount) {
+                    $this->update_fluent_forms_coupon($old_code, $coupon_code, $amount);
+                }
+            } else {
+                if (empty($coupon_code)) {
+                    $coupon_code = $this->generate_coupon_code();
+                    $data['coupon_code'] = $coupon_code;
+                } else {
+                    if ($this->database->get_gift_certificate_by_coupon_code($coupon_code)) {
+                        $coupon_code = $this->generate_coupon_code();
+                        $data['coupon_code'] = $coupon_code;
+                    }
+                }
+
+                $certificate_id = $this->database->create_gift_certificate($data);
+
+                if ($certificate_id) {
+                    $this->create_fluent_forms_coupon($coupon_code, $amount, $certificate_id);
+                    $email_handler = GiftCertificateEmail::get_instance();
+                    $email_handler->send_gift_certificate_email($certificate_id);
+                }
+            }
+
+            wp_redirect(admin_url('admin.php?page=gift-certificates-ff-list'));
+            exit;
+        }
+
+        $designs_class = new GiftCertificateDesigns();
+        $designs = $designs_class->get_designs();
+
+        include GIFT_CERTIFICATES_FF_PLUGIN_DIR . 'admin/views/certificate-edit.php';
     }
     
     public function settings_page() {
@@ -654,11 +733,146 @@ class GiftCertificateAdmin {
     private function test_email($email_address) {
         $email_handler = GiftCertificateEmail::get_instance();
         $result = $email_handler->send_test_email($email_address);
-        
+
         if ($result) {
             wp_send_json_success('Test email sent successfully! Check your email inbox.');
         } else {
             wp_send_json_error('Failed to send test email. Check the error logs for details.');
         }
     }
-} 
+
+    private function update_fluent_forms_coupon($old_code, $new_code, $amount) {
+        $coupon_table_name = $this->get_coupon_table_name();
+
+        if (!$this->table_exists($coupon_table_name)) {
+            return false;
+        }
+
+        try {
+            $coupon = wpFluent()->table($coupon_table_name)
+                ->where('code', $old_code)
+                ->first();
+
+            if ($coupon) {
+                $settings = unserialize($coupon->settings);
+                if (is_array($settings)) {
+                    $settings['success_message'] = '{coupon.code} - {coupon.amount}';
+                }
+
+                $update_data = array(
+                    'amount' => $amount,
+                    'settings' => serialize($settings),
+                    'updated_at' => current_time('mysql')
+                );
+
+                if ($old_code !== $new_code) {
+                    $update_data['code'] = $new_code;
+                    $update_data['title'] = 'Gift Certificate - ' . $new_code;
+                }
+
+                wpFluent()->table($coupon_table_name)
+                    ->where('id', $coupon->id)
+                    ->update($update_data);
+                return true;
+            } else {
+                return $this->create_fluent_forms_coupon($new_code, $amount, 0);
+            }
+        } catch (Exception $e) {
+            gcff_log('Failed to update Fluent Forms coupon: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    private function generate_coupon_code() {
+        $prefix = 'GC';
+        $length = 8;
+        $max_attempts = 10;
+
+        for ($i = 0; $i < $max_attempts; $i++) {
+            $code = $prefix . strtoupper(substr(md5(uniqid()), 0, $length));
+            $existing = $this->database->get_gift_certificate_by_coupon_code($code);
+            if (!$existing) {
+                return $code;
+            }
+        }
+
+        return $prefix . strtoupper(substr(md5(uniqid()), 0, $length));
+    }
+
+    private function create_fluent_forms_coupon($coupon_code, $amount, $gift_certificate_id) {
+        if (!function_exists('is_plugin_active')) {
+            require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        }
+
+        if (!is_plugin_active('fluentformpro/fluentformpro.php') && !is_plugin_active('fluentformpro-addon-pack/fluentformpro-addon-pack.php')) {
+            return false;
+        }
+
+        $coupon_table_name = $this->get_coupon_table_name();
+
+        if (!$this->table_exists($coupon_table_name)) {
+            return false;
+        }
+
+        try {
+            $settings = array(
+                'allowed_form_ids' => $this->settings['allowed_form_ids'] ?? array(),
+                'coupon_limit' => '0',
+                'success_message' => '{coupon.code} - {coupon.amount}',
+                'failed_message' => array(
+                    'inactive' => 'The provided coupon is not valid',
+                    'min_amount' => 'The provided coupon does not meet the requirements',
+                    'stackable' => 'Sorry, you can not apply this coupon with other coupon code',
+                    'date_expire' => 'The provided coupon is not valid',
+                    'allowed_form' => 'The provided coupon is not valid',
+                    'limit' => 'The provided coupon is not valid'
+                )
+            );
+
+            $coupon_data = array(
+                'title' => "Gift Certificate - {$coupon_code}",
+                'code' => $coupon_code,
+                'coupon_type' => 'fixed',
+                'amount' => $amount,
+                'status' => 'active',
+                'stackable' => 'no',
+                'settings' => serialize($settings),
+                'created_by' => get_current_user_id() ?: 1,
+                'min_amount' => 0,
+                'max_use' => 1,
+                'start_date' => current_time('Y-m-d'),
+                'expire_date' => date('Y-m-d', strtotime('+1 year')),
+                'created_at' => current_time('mysql'),
+                'updated_at' => current_time('mysql')
+            );
+
+            wpFluent()->table($coupon_table_name)->insert($coupon_data);
+            return true;
+        } catch (Exception $e) {
+            gcff_log('Failed to create Fluent Forms coupon: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    private function get_coupon_table_name() {
+        $settings = get_option('gift_certificates_ff_settings', array());
+        $custom_table_name = $settings['coupon_table_name'] ?? '';
+
+        if (!empty($custom_table_name)) {
+            return str_replace('wp_', '', sanitize_key($custom_table_name));
+        }
+
+        return 'fluentform_coupons';
+    }
+
+    private function table_exists($table_name) {
+        global $wpdb;
+        try {
+            $full_table_name = $wpdb->prefix . $table_name;
+            return $wpdb->get_var("SHOW TABLES LIKE '{$full_table_name}'") === $full_table_name;
+        } catch (Exception $e) {
+            gcff_log('Gift Certificate: Error checking table ' . $table_name . ': ' . $e->getMessage());
+            return false;
+        }
+    }
+}

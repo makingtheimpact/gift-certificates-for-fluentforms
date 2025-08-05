@@ -26,7 +26,10 @@ if (!defined('ABSPATH')) {
         </div>
         
         <div class="alignright">
-            <a href="<?php echo admin_url('admin.php?page=gift-certificates-ff'); ?>" class="button button-primary">
+            <a href="<?php echo admin_url('admin.php?page=gift-certificates-ff-add'); ?>" class="button button-primary">
+                <?php _e('Add New', 'gift-certificates-fluentforms'); ?>
+            </a>
+            <a href="<?php echo admin_url('admin.php?page=gift-certificates-ff'); ?>" class="button" style="margin-left:10px;">
                 <?php _e('Back to Dashboard', 'gift-certificates-fluentforms'); ?>
             </a>
         </div>
@@ -73,6 +76,11 @@ if (!defined('ABSPATH')) {
                         <td><?php echo date('M j, Y', strtotime($certificate->created_at)); ?></td>
                         <td>
                             <div class="row-actions">
+                                <span class="edit">
+                                    <a href="<?php echo admin_url('admin.php?page=gift-certificates-ff-add&certificate_id=' . $certificate->id); ?>">
+                                        <?php _e('Edit', 'gift-certificates-fluentforms'); ?>
+                                    </a> |
+                                </span>
                                 <span class="view">
                                     <a href="<?php echo admin_url('admin.php?page=gift-certificates-ff-list&action=view&id=' . $certificate->id); ?>">
                                         <?php _e('View', 'gift-certificates-fluentforms'); ?>
