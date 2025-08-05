@@ -114,14 +114,23 @@ class GiftCertificateCoupon {
         }
         
         $gift_certificate_id = $gift_certificate_info['gift_certificate_id'];
-        $amount_used = $gift_certificate_info['amount_applied'];
-        
+        $amount_used        = $gift_certificate_info['amount_applied'];
+
         // Get current gift certificate
         $gift_certificate = $this->database->get_gift_certificate($gift_certificate_id);
-        
+
         if (!$gift_certificate) {
             return;
         }
+
+
+        // Calculate new balance using integer math to maintain precision
+        $result       = $this->calculate_new_balance($gift_certificate->current_balance, $amount_used);
+        $amount_used  = $result['amount_used'];
+        $new_balance  = $result['new_balance'];
+
+        // Update gift certificate balance
+        $this->database->update_gift_certificate_balance($gift_certificate_id, $new_balance);
         
         if ($amount_used > $gift_certificate->current_balance) {
             $amount_used = $gift_certificate->current_balance;
@@ -190,6 +199,29 @@ class GiftCertificateCoupon {
 
         // Log transaction
         gcff_log("Gift certificate used: ID {$gift_certificate_id}, Amount: {$amount_used}, New Balance: {$new_balance}");
+    }
+
+    /**
+     * Perform subtraction using integer cents to maintain two-decimal precision.
+     *
+     * @param float|string $balance Current balance.
+     * @param float|string $amount  Amount to subtract.
+     *
+     * @return array{amount_used: float, new_balance: float}
+     */
+    protected function calculate_new_balance($balance, $amount) {
+        $balance_cents = (int) round(((float) $balance) * 100);
+        $amount_cents  = (int) round(((float) $amount) * 100);
+
+        // Prevent overdraft
+        $amount_cents = min($balance_cents, $amount_cents);
+
+        $new_balance_cents = $balance_cents - $amount_cents;
+
+        return array(
+            'amount_used' => $amount_cents / 100,
+            'new_balance' => $new_balance_cents / 100,
+        );
     }
     
     private function is_gift_certificate_coupon($coupon) {

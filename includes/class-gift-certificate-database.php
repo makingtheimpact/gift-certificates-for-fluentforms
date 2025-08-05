@@ -144,14 +144,16 @@ class GiftCertificateDatabase {
     public function update_gift_certificate_balance($id, $amount) {
         global $wpdb;
 
-        $result = $wpdb->query(
-            $wpdb->prepare(
-                "UPDATE {$this->gift_certificates_table} SET current_balance = current_balance - %f WHERE id = %d AND current_balance >= %f",
-                $amount,
-                $id,
-                $amount
-            )
-        );
+        // Ensure two-decimal precision before writing to the database
+        $new_balance_cents = (int) round(((float) $new_balance) * 100);
+        $new_balance       = $new_balance_cents / 100;
+
+        $result = $wpdb->update(
+            $this->gift_certificates_table,
+            array('current_balance' => $new_balance),
+            array('id' => $id),
+            array('%f'),
+            array('%d')
 
         if ($result === false) {
             return false;
