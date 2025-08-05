@@ -144,9 +144,25 @@ class GiftCertificateDatabase {
     public function update_gift_certificate_balance($id, $amount) {
         global $wpdb;
 
-        // Ensure two-decimal precision before writing to the database
-        $new_balance_cents = (int) round(((float) $new_balance) * 100);
-        $new_balance       = $new_balance_cents / 100;
+        // Fetch current balance for the certificate
+        $current_balance = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT current_balance FROM {$this->gift_certificates_table} WHERE id = %d",
+                $id
+            )
+        );
+
+        if ($current_balance === null) {
+            return false;
+        }
+
+        // Work in integer cents to avoid floating point inaccuracies
+        $balance_cents      = (int) round(((float) $current_balance) * 100);
+        $amount_cents       = (int) round(((float) $amount) * 100);
+        $amount_cents       = min($balance_cents, $amount_cents);
+        $new_balance_cents  = $balance_cents - $amount_cents;
+        $new_balance        = $new_balance_cents / 100;
+        $amount_used        = $amount_cents / 100;
 
         $result = $wpdb->update(
             $this->gift_certificates_table,
@@ -154,21 +170,11 @@ class GiftCertificateDatabase {
             array('id' => $id),
             array('%f'),
             array('%d')
+        );
 
         if ($result === false) {
             return false;
         }
-
-        if ($result === 0) {
-            return array('rows_affected' => 0);
-        }
-
-        $new_balance = (float) $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT current_balance FROM {$this->gift_certificates_table} WHERE id = %d",
-                $id
-            )
-        );
 
         if ($new_balance <= 0) {
             $this->update_gift_certificate_status($id, 'expired');
@@ -182,6 +188,7 @@ class GiftCertificateDatabase {
         return array(
             'rows_affected' => $result,
             'new_balance'   => $new_balance,
+            'amount_used'   => $amount_used,
         );
     }
     
