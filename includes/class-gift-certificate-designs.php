@@ -245,7 +245,7 @@ class GiftCertificateDesigns {
             'email_template' => $this->sanitize_email_template($_POST['email_template']),
             'custom_css' => sanitize_textarea_field($_POST['custom_css']),
             'email_format' => sanitize_text_field($_POST['email_format']),
-            'active' => isset($_POST['design_active']) ? 1 : 0,
+            'active' => !empty($_POST['design_active']) ? 1 : 0,
             'created_at' => current_time('mysql')
         );
         
