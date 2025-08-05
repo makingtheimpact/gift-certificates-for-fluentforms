@@ -9,6 +9,7 @@ function add_filter() {}
 function add_action() {}
 function do_action() {}
 function gcff_log() {}
+function apply_filters($tag, $value) { return $value; }
 
 // Setup a stub wpdb implementation.
 class WPDBStub {
@@ -47,7 +48,10 @@ class WPDBStub {
 
 global $wpdb;
 $wpdb = new WPDBStub();
-$wpdb->balances = array(1 => 100.00, 2 => 50.00);
+$wpdb->balances = array(
+    1 => '100.0000',
+    2 => '50.0000',
+);
 
 require_once __DIR__ . '/../includes/class-gift-certificate-database.php';
 require_once __DIR__ . '/../includes/class-gift-certificate-coupon.php';
@@ -65,30 +69,39 @@ class CouponTest extends GiftCertificateCoupon {
 
 // Test precision subtraction with large values.
 $coupon = new CouponTest();
-$result = $coupon->calc(999999999.99, 0.01);
-assert($result['new_balance'] == 999999999.98);
+$result = $coupon->calc('999999999.99', '0.01');
+assert($result['new_balance'] === '999999999.9800');
 
 // Test precision with repeating decimals.
-$result = $coupon->calc(0.3, 0.1);
-assert($result['new_balance'] == 0.2);
+$result = $coupon->calc('0.3', '0.1');
+assert($result['new_balance'] === '0.2000');
 
-// Test rounding of fractional cents.
-$result = $coupon->calc(10.00, 0.333333);
-assert($result['new_balance'] == 9.67);
+// Test rounding of fractional cents (0.3333).
+$result = $coupon->calc('10.00', '0.3333');
+assert($result['new_balance'] === '9.6667');
+assert($result['amount_used'] === '0.3333');
 
 // Test overdraft protection.
-$result = $coupon->calc(5, 10);
-assert($result['new_balance'] == 0.0);
-assert($result['amount_used'] == 5.0);
+$result = $coupon->calc('5', '10');
+assert($result['new_balance'] === '0.0000');
+assert($result['amount_used'] === '5.0000');
 
-// Test database rounding behaviour and subtraction logic.
+// Test handling of values like 1.275.
+$result = $coupon->calc('2', '1.275');
+assert($result['new_balance'] === '0.7250');
+
+// Test database subtraction logic.
 $db = new GiftCertificateDatabase();
-$result = $db->update_gift_certificate_balance(1, 10.555);
-assert(abs($wpdb->balances[1] - 89.44) < 0.001);
-assert(abs($result['amount_used'] - 10.56) < 0.001);
+$result = $db->update_gift_certificate_balance(1, '10.5555');
+assert($wpdb->balances[1] === '89.4445');
+assert($result['amount_used'] === '10.5555');
 
-$result = $db->update_gift_certificate_balance(2, 10.554);
-assert(abs($wpdb->balances[2] - 39.45) < 0.001);
-assert(abs($result['amount_used'] - 10.55) < 0.001);
+$result = $db->update_gift_certificate_balance(2, '0.3333');
+assert($wpdb->balances[2] === '49.6667');
+assert($result['amount_used'] === '0.3333');
+
+$wpdb->balances[3] = '1.2750';
+$result = $db->update_gift_certificate_balance(3, '0.3333');
+assert($wpdb->balances[3] === '0.9417');
 
 echo "All precision tests passed.\n";
