@@ -135,6 +135,25 @@ class GiftCertificateCoupon {
         }
 
         $new_balance = $update_result['new_balance'];
+        
+        // Start a database transaction to keep balance and coupon updates in sync
+        global $wpdb;
+        $wpdb->query('START TRANSACTION');
+
+        $balance_updated = $this->database->update_gift_certificate_balance($gift_certificate_id, $new_balance);
+
+        $coupon_updated = true;
+        if ($new_balance > 0) {
+            $coupon_updated = $this->update_fluent_forms_coupon_amount($coupon->code, $new_balance);
+        }
+
+        if ($balance_updated && $coupon_updated) {
+            $wpdb->query('COMMIT');
+        } else {
+            $wpdb->query('ROLLBACK');
+            gcff_log("Gift Certificate: Failed to update balance or coupon - transaction rolled back for ID {$gift_certificate_id}");
+            return;
+        }
 
         // Record transaction
         $this->database->record_transaction(
@@ -148,7 +167,8 @@ class GiftCertificateCoupon {
         if ($new_balance > 0) {
             $this->update_fluent_forms_coupon_amount($coupon->code, $new_balance);
 
-            // Reset usage count so the coupon can be applied again
+        // Reset coupon usage if there's remaining balance
+        if ($new_balance > 0) {
             $coupon_table_name = $this->get_coupon_table_name();
             if ($this->table_exists($coupon_table_name)) {
                 try {
@@ -164,10 +184,10 @@ class GiftCertificateCoupon {
                 }
             }
         }
-        
+
         // Remove from transient
         delete_transient("gift_certificate_{$submission_id}");
-        
+
         // Log transaction
         gcff_log("Gift certificate used: ID {$gift_certificate_id}, Amount: {$amount_used}, New Balance: {$new_balance}");
     }
@@ -344,8 +364,10 @@ class GiftCertificateCoupon {
      */
     private function get_coupon_table_name() {
         $settings = get_option('gift_certificates_ff_settings', array());
-        $custom_table_name = $settings['coupon_table_name'] ?? '';
-        
+        $custom_table_name = isset($settings['coupon_table_name'])
+            ? sanitize_key($settings['coupon_table_name'])
+            : '';
+
         if (!empty($custom_table_name)) {
             // Remove wp_ prefix if present since wpFluent() adds it automatically
             return str_replace('wp_', '', $custom_table_name);
@@ -364,7 +386,9 @@ class GiftCertificateCoupon {
         try {
             // For checking existence, we need the full table name with prefix
             $full_table_name = $wpdb->prefix . $table_name;
-            $table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$full_table_name}'") === $full_table_name;
+            $table_exists = $wpdb->get_var(
+                $wpdb->prepare('SHOW TABLES LIKE %s', $full_table_name)
+            ) === $full_table_name;
             return $table_exists;
         } catch (Exception $e) {
             gcff_log("Gift Certificate: Error checking table '{$full_table_name}': " . $e->getMessage());
