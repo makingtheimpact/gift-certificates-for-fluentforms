@@ -277,6 +277,10 @@ define('WP_DEBUG', true);
 define('WP_DEBUG_LOG', true);
 ```
 
+## Concurrency
+
+Balance updates are performed using atomic SQL queries. External integrations should check the affected row count when redeeming a certificate and retry or report a conflict if no rows are updated. See [Concurrency and External Integrations](docs/CONCURRENCY.md) for more details.
+
 ## Support
 
 For support and documentation:

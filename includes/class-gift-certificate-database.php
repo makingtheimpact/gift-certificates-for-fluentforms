@@ -141,33 +141,46 @@ class GiftCertificateDatabase {
         );
     }
     
-    public function update_gift_certificate_balance($id, $new_balance) {
+    public function update_gift_certificate_balance($id, $amount) {
         global $wpdb;
-        
-        $result = $wpdb->update(
-            $this->gift_certificates_table,
-            array('current_balance' => $new_balance),
-            array('id' => $id),
-            array('%f'),
-            array('%d')
+
+        $result = $wpdb->query(
+            $wpdb->prepare(
+                "UPDATE {$this->gift_certificates_table} SET current_balance = current_balance - %f WHERE id = %d AND current_balance >= %f",
+                $amount,
+                $id,
+                $amount
+            )
         );
-        
+
         if ($result === false) {
             return false;
         }
-        
-        // If balance is zero, mark as expired and deactivate the coupon
+
+        if ($result === 0) {
+            return array('rows_affected' => 0);
+        }
+
+        $new_balance = (float) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT current_balance FROM {$this->gift_certificates_table} WHERE id = %d",
+                $id
+            )
+        );
+
         if ($new_balance <= 0) {
             $this->update_gift_certificate_status($id, 'expired');
 
-            // Deactivate associated coupon so it can't be used again
             $gift_certificate = $this->get_gift_certificate($id);
             if ($gift_certificate && !empty($gift_certificate->coupon_code)) {
                 do_action('gcff_gift_certificate_balance_zero', $gift_certificate->coupon_code);
             }
         }
 
-        return true;
+        return array(
+            'rows_affected' => $result,
+            'new_balance'   => $new_balance,
+        );
     }
     
     public function update_gift_certificate_status($id, $status) {
