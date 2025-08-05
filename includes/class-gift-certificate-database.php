@@ -9,14 +9,16 @@ if (!defined('ABSPATH')) {
 }
 
 class GiftCertificateDatabase {
-    
+
     private $gift_certificates_table;
     private $transactions_table;
+    private $scale = 4;
     
     public function __construct() {
         global $wpdb;
         $this->gift_certificates_table = $wpdb->prefix . 'gift_certificates';
         $this->transactions_table = $wpdb->prefix . 'gift_certificate_transactions';
+        $this->scale = (int) apply_filters('gcff_decimal_scale', $this->scale);
 
         // Ensure required columns exist
         $this->maybe_add_design_id_column();
@@ -31,8 +33,8 @@ class GiftCertificateDatabase {
         $sql_gift_certificates = "CREATE TABLE {$this->gift_certificates_table} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             coupon_code varchar(50) NOT NULL,
-            original_amount decimal(10,2) NOT NULL,
-            current_balance decimal(10,2) NOT NULL,
+            original_amount decimal(15,4) NOT NULL,
+            current_balance decimal(15,4) NOT NULL,
             recipient_email varchar(255) NOT NULL,
             recipient_name varchar(255) NOT NULL,
             sender_name varchar(255) NOT NULL,
@@ -54,7 +56,7 @@ class GiftCertificateDatabase {
         $sql_transactions = "CREATE TABLE {$this->transactions_table} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             gift_certificate_id bigint(20) unsigned NOT NULL,
-            amount_used decimal(10,2) NOT NULL,
+            amount_used decimal(15,4) NOT NULL,
             order_id varchar(255) DEFAULT NULL,
             form_submission_id bigint(20) unsigned DEFAULT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
@@ -76,8 +78,8 @@ class GiftCertificateDatabase {
         
         $defaults = array(
             'coupon_code' => '',
-            'original_amount' => 0,
-            'current_balance' => 0,
+            'original_amount' => '0',
+            'current_balance' => '0',
             'recipient_email' => '',
             'recipient_name' => '',
             'sender_name' => '',
@@ -92,13 +94,13 @@ class GiftCertificateDatabase {
         // Sanitize data
         $data = array_map('sanitize_text_field', $data);
         $data['message'] = sanitize_textarea_field($data['message']);
-        $data['original_amount'] = floatval($data['original_amount']);
-        $data['current_balance'] = floatval($data['current_balance']);
+        $data['original_amount'] = $this->sanitize_amount($data['original_amount']);
+        $data['current_balance'] = $this->sanitize_amount($data['current_balance']);
         
         $result = $wpdb->insert(
             $this->gift_certificates_table,
             $data,
-            array('%s', '%f', '%f', '%s', '%s', '%s', '%s', '%s', '%s', '%s')
+            array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')
         );
         
         if ($result === false) {
@@ -156,19 +158,20 @@ class GiftCertificateDatabase {
             return false;
         }
 
-        // Work in integer cents to avoid floating point inaccuracies
-        $balance_cents      = (int) round(((float) $current_balance) * 100);
-        $amount_cents       = (int) round(((float) $amount) * 100);
-        $amount_cents       = min($balance_cents, $amount_cents);
-        $new_balance_cents  = $balance_cents - $amount_cents;
-        $new_balance        = $new_balance_cents / 100;
-        $amount_used        = $amount_cents / 100;
+        $current_balance = $this->sanitize_amount($current_balance);
+        $amount = $this->sanitize_amount($amount);
+
+        if (bccomp($amount, $current_balance, $this->scale) === 1) {
+            $amount = $current_balance;
+        }
+
+        $new_balance = bcsub($current_balance, $amount, $this->scale);
 
         $result = $wpdb->update(
             $this->gift_certificates_table,
             array('current_balance' => $new_balance),
             array('id' => $id),
-            array('%f'),
+            array('%s'),
             array('%d')
         );
 
@@ -176,7 +179,7 @@ class GiftCertificateDatabase {
             return false;
         }
 
-        if ($new_balance <= 0) {
+        if (bccomp($new_balance, '0', $this->scale) <= 0) {
             $this->update_gift_certificate_status($id, 'expired');
 
             $gift_certificate = $this->get_gift_certificate($id);
@@ -188,7 +191,7 @@ class GiftCertificateDatabase {
         return array(
             'rows_affected' => $result,
             'new_balance'   => $new_balance,
-            'amount_used'   => $amount_used,
+            'amount_used'   => $amount,
         );
     }
     
@@ -217,13 +220,13 @@ class GiftCertificateDatabase {
         }
 
         if (isset($data['original_amount'])) {
-            $sanitized_data['original_amount'] = floatval($data['original_amount']);
-            $format[] = '%f';
+            $sanitized_data['original_amount'] = $this->sanitize_amount($data['original_amount']);
+            $format[] = '%s';
         }
 
         if (isset($data['current_balance'])) {
-            $sanitized_data['current_balance'] = floatval($data['current_balance']);
-            $format[] = '%f';
+            $sanitized_data['current_balance'] = $this->sanitize_amount($data['current_balance']);
+            $format[] = '%s';
         }
 
         if (isset($data['recipient_email'])) {
@@ -287,6 +290,8 @@ class GiftCertificateDatabase {
     public function record_transaction($gift_certificate_id, $amount_used, $order_id = null, $form_submission_id = null) {
         global $wpdb;
         
+        $amount_used = $this->sanitize_amount($amount_used);
+
         return $wpdb->insert(
             $this->transactions_table,
             array(
@@ -295,7 +300,7 @@ class GiftCertificateDatabase {
                 'order_id' => $order_id,
                 'form_submission_id' => $form_submission_id
             ),
-            array('%d', '%f', '%s', '%d')
+            array('%d', '%s', '%s', '%d')
         );
     }
     
@@ -423,7 +428,15 @@ class GiftCertificateDatabase {
         
         return $stats;
     }
-    
+
+    private function sanitize_amount($amount) {
+        $amount = preg_replace('/[^0-9.]/', '', (string) $amount);
+        if ($amount === '') {
+            $amount = '0';
+        }
+        return bcadd($amount, '0', $this->scale);
+    }
+
     private function add_foreign_key_constraint() {
         global $wpdb;
         

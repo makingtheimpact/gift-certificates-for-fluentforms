@@ -9,11 +9,13 @@ if (!defined('ABSPATH')) {
 }
 
 class GiftCertificateCoupon {
-    
+
     private $database;
-    
+    protected $scale = 4;
+
     public function __construct() {
         $this->database = new GiftCertificateDatabase();
+        $this->scale = (int) apply_filters('gcff_decimal_scale', $this->scale);
         
         // Hook into Fluent Forms Pro coupon validation
         add_filter('fluentformpro_coupon_validation', array($this, 'validate_gift_certificate_coupon'), 10, 3);
@@ -44,7 +46,7 @@ class GiftCertificateCoupon {
         }
         
         // Check if there's sufficient balance
-        if ($gift_certificate->current_balance <= 0) {
+        if (bccomp($gift_certificate->current_balance, '0', $this->scale) <= 0) {
             return false;
         }
         
@@ -55,8 +57,10 @@ class GiftCertificateCoupon {
         }
         
         // Check the order total and set coupon amount accordingly
-        $order_total   = $this->calculate_order_total($form_data);
-        $coupon->amount = min($order_total, $gift_certificate->current_balance);
+        $order_total = $this->calculate_order_total($form_data);
+        $coupon->amount = bccomp($order_total, $gift_certificate->current_balance, $this->scale) === 1
+            ? $gift_certificate->current_balance
+            : $order_total;
 
         return true;
     }
@@ -76,12 +80,12 @@ class GiftCertificateCoupon {
         }
 
         // Determine the amount used. Prefer the coupon's amount and fall back to recalculating
-        $amount_used = 0;
+        $amount_used = '0';
         if (isset($coupon->amount)) {
-            $amount_used = max(0, floatval($coupon->amount));
+            $amount_used = $this->sanitize_amount($coupon->amount);
         }
 
-        if ($amount_used <= 0) {
+        if (bccomp($amount_used, '0', $this->scale) !== 1) {
             $amount_used = $this->calculate_order_total($form_data);
         }
 
@@ -105,7 +109,7 @@ class GiftCertificateCoupon {
         );
 
         // Update Fluent Forms Pro coupon amount and reset usage if there's remaining balance
-        if ($new_balance > 0) {
+        if (bccomp($new_balance, '0', $this->scale) === 1) {
             $this->update_fluent_forms_coupon_amount($coupon->code, $new_balance);
 
             $coupon_table_name = $this->get_coupon_table_name();
@@ -132,25 +136,26 @@ class GiftCertificateCoupon {
     }
 
     /**
-     * Perform subtraction using integer cents to maintain two-decimal precision.
+     * Perform subtraction using bcmath to maintain precision.
      *
-     * @param float|string $balance Current balance.
-     * @param float|string $amount  Amount to subtract.
+     * @param string|float $balance Current balance.
+     * @param string|float $amount  Amount to subtract.
      *
-     * @return array{amount_used: float, new_balance: float}
+     * @return array{amount_used: string, new_balance: string}
      */
     protected function calculate_new_balance($balance, $amount) {
-        $balance_cents = (int) round(((float) $balance) * 100);
-        $amount_cents  = (int) round(((float) $amount) * 100);
+        $balance = $this->sanitize_amount($balance);
+        $amount  = $this->sanitize_amount($amount);
 
-        // Prevent overdraft
-        $amount_cents = min($balance_cents, $amount_cents);
+        if (bccomp($amount, $balance, $this->scale) === 1) {
+            $amount = $balance;
+        }
 
-        $new_balance_cents = $balance_cents - $amount_cents;
+        $new_balance = bcsub($balance, $amount, $this->scale);
 
         return array(
-            'amount_used' => $amount_cents / 100,
-            'new_balance' => $new_balance_cents / 100,
+            'amount_used' => $amount,
+            'new_balance' => $new_balance,
         );
     }
     
@@ -203,7 +208,15 @@ class GiftCertificateCoupon {
             $total = floatval($form_data['payment_input']) * $quantity;
         }
 
-        return $total;
+        return $this->sanitize_amount($total);
+    }
+
+    private function sanitize_amount($amount) {
+        $amount = preg_replace('/[^0-9.]/', '', (string) $amount);
+        if ($amount === '') {
+            $amount = '0';
+        }
+        return bcadd($amount, '0', $this->scale);
     }
     
     private function get_current_form_id($form_data) {
