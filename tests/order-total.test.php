@@ -59,6 +59,23 @@ $form_data = array(
 );
 assert($coupon->total($form_data) === '35.0000');
 
+// --- Test multiple payment fields with global quantity fallback ---
+$gcff_test_settings = array('order_total_field_name' => 'payment_input,additional_payment');
+$form_data = array(
+    'payment_input' => '10',
+    'additional_payment' => '5',
+    'quantity' => '2',
+);
+assert($coupon->total($form_data) === '30.0000');
+
+// --- Test zero quantity ---
+$gcff_test_settings = array('order_total_field_name' => 'payment_input');
+$form_data = array(
+    'payment_input' => '10',
+    'payment_input_quantity' => '0',
+);
+assert($coupon->total($form_data) === '0.0000');
+
 // --- Test no matching payment fields ---
 $gcff_test_settings = array('order_total_field_name' => 'payment_input');
 $form_data = array();

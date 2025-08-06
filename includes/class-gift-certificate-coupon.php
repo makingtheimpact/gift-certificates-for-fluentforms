@@ -224,7 +224,7 @@ class GiftCertificateCoupon {
 
             // Determine quantity for this specific field. Look for field-specific quantity
             // inputs first, then fall back to common quantity field names.
-            $quantity = 1;
+            $quantity = null;
             $quantity_patterns = array(
                 $field . '_quantity',
                 $field . '_qty',
@@ -232,19 +232,28 @@ class GiftCertificateCoupon {
             );
             foreach ($quantity_patterns as $qfield) {
                 if (isset($form_data[$qfield])) {
-                    $quantity = max(1, intval($form_data[$qfield]));
+                    $quantity = max(0, intval($form_data[$qfield]));
                     break;
                 }
             }
 
-            if ($quantity === 1) {
+            if ($quantity === null) {
                 $global_quantity_fields = array('item-quantity', 'quantity', 'qty');
                 foreach ($global_quantity_fields as $gfield) {
                     if (isset($form_data[$gfield])) {
-                        $quantity = max(1, intval($form_data[$gfield]));
+                        $quantity = max(0, intval($form_data[$gfield]));
                         break;
                     }
                 }
+            }
+
+            if ($quantity === null) {
+                $quantity = 1;
+            }
+
+            if ($quantity === 0) {
+                // Skip fields where quantity is explicitly zero.
+                continue;
             }
 
             $field_total = bcmul($value, (string) $quantity, $this->scale);
