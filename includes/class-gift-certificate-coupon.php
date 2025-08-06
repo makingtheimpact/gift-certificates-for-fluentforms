@@ -92,7 +92,7 @@ class GiftCertificateCoupon {
         // Update balance in the database and retrieve the actual amount used
         $update_result = $this->database->update_gift_certificate_balance($gift_certificate->id, $amount_used);
 
-        if (empty($update_result) || empty($update_result['rows_affected'])) {
+        if ($update_result === false || empty($update_result['rows_affected'])) {
             gcff_log("Gift certificate balance update conflict: ID {$gift_certificate->id}");
             return;
         }

@@ -14,13 +14,14 @@ function apply_filters($tag, $value) { return $value; }
 // Setup a stub wpdb implementation.
 class WPDBStub {
     public $prefix = 'wp_';
-    public $updates = array();
     public $balances = array();
+    public $rows_affected = 0;
 
     public function update($table, $data, $where, $format_data = array(), $format_where = array()) {
         $id = $where['id'];
-        $this->updates[] = array('table' => $table, 'data' => $data, 'where' => $where);
-        $this->balances[$id] = $data['current_balance'];
+        if (isset($data['current_balance'])) {
+            $this->balances[$id] = $data['current_balance'];
+        }
         return 1;
     }
 
@@ -43,7 +44,25 @@ class WPDBStub {
         return $query;
     }
 
-    public function query($sql) { return true; }
+    public function query($sql) {
+        if (preg_match('/current_balance\s*=\s*current_balance\s*-\s*([0-9.]+).*WHERE id\s*=\s*(\d+)\s+AND current_balance\s*>=\s*([0-9.]+)/', $sql, $m)) {
+            $amount = $m[1];
+            $id = intval($m[2]);
+            $threshold = $m[3];
+            $balance = $this->balances[$id] ?? null;
+
+            if ($balance !== null && bccomp($balance, $threshold, 4) >= 0) {
+                $this->balances[$id] = bcsub($balance, $amount, 4);
+                $this->rows_affected = 1;
+                return 1;
+            }
+
+            $this->rows_affected = 0;
+            return 0;
+        }
+
+        return false;
+    }
 }
 
 global $wpdb;

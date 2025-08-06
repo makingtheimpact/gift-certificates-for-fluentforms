@@ -140,41 +140,61 @@ class GiftCertificateDatabase {
         );
     }
     
+    /**
+     * Atomically deduct an amount from a gift certificate's balance.
+     *
+     * Performs a single SQL UPDATE and checks the affected row count to
+     * detect insufficient funds or concurrent updates. When no rows are
+     * affected, the certificate either doesn't exist or has insufficient
+     * balance to cover the requested amount.
+     *
+     * @param int          $id     Gift certificate ID.
+     * @param string|float $amount Amount to subtract.
+     *
+     * @return array{
+     *     rows_affected:int,
+     *     new_balance:?string,
+     *     amount_used:string
+     * }|false False on database error.
+     */
     public function update_gift_certificate_balance($id, $amount) {
         global $wpdb;
 
-        // Fetch current balance for the certificate
-        $current_balance = $wpdb->get_var(
+        $amount = $this->sanitize_amount($amount);
+
+        $result = $wpdb->query(
+            $wpdb->prepare(
+                "UPDATE {$this->gift_certificates_table} SET current_balance = current_balance - %s WHERE id = %d AND current_balance >= %s",
+                $amount,
+                $id,
+                $amount
+            )
+        );
+
+        if ($result === false) {
+            return false;
+        }
+
+        if ($result === 0) {
+            return array(
+                'rows_affected' => 0,
+                'new_balance'   => null,
+                'amount_used'   => '0',
+            );
+        }
+
+        $new_balance = $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT current_balance FROM {$this->gift_certificates_table} WHERE id = %d",
                 $id
             )
         );
 
-        if ($current_balance === null) {
+        if ($new_balance === null) {
             return false;
         }
 
-        $current_balance = $this->sanitize_amount($current_balance);
-        $amount = $this->sanitize_amount($amount);
-
-        if (bccomp($amount, $current_balance, $this->scale) === 1) {
-            $amount = $current_balance;
-        }
-
-        $new_balance = bcsub($current_balance, $amount, $this->scale);
-
-        $result = $wpdb->update(
-            $this->gift_certificates_table,
-            array('current_balance' => $new_balance),
-            array('id' => $id),
-            array('%s'),
-            array('%d')
-        );
-
-        if ($result === false) {
-            return false;
-        }
+        $new_balance = $this->sanitize_amount($new_balance);
 
         if (bccomp($new_balance, '0', $this->scale) <= 0) {
             $this->update_gift_certificate_status($id, 'expired');
