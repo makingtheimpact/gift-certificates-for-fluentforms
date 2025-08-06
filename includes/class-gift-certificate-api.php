@@ -32,7 +32,7 @@ class GiftCertificateAPI {
             array(
                 'methods' => WP_REST_Server::READABLE,
                 'callback' => array($this, 'get_balance'),
-                'permission_callback' => array($this, 'check_balance_permission'),
+                'permission_callback' => array($this, 'verify_balance_request'),
                 'args' => array(
                     'code' => array(
                         'validate_callback' => function($param) {
@@ -239,11 +239,6 @@ class GiftCertificateAPI {
         return new WP_REST_Response($stats, 200);
     }
 
-    public function check_balance_permission($request) {
-        // Allow public access for balance checking
-        return true;
-    }
-
     /**
      * Verify nonce for balance checks to prevent abuse
      *
@@ -252,6 +247,9 @@ class GiftCertificateAPI {
      */
     public function verify_balance_request($request) {
         $nonce = $request->get_header('X-WP-Nonce');
+        if (!$nonce) {
+            $nonce = $request->get_param('_wpnonce');
+        }
 
         if (!$nonce || !wp_verify_nonce($nonce, 'wp_rest')) {
             return new WP_Error(
@@ -261,6 +259,34 @@ class GiftCertificateAPI {
             );
         }
 
+        $rate_check = $this->check_rate_limit($request);
+        if (is_wp_error($rate_check)) {
+            return $rate_check;
+        }
+
+        return true;
+    }
+
+    /**
+     * Basic rate limiting to prevent abuse of balance checks.
+     *
+     * @param WP_REST_Request $request REST request object.
+     * @return true|WP_Error
+     */
+    private function check_rate_limit($request) {
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        $key = 'gcff_balance_' . md5($ip);
+        $requests = (int) get_transient($key);
+
+        if ($requests >= 5) {
+            return new WP_Error(
+                'rest_rate_limited',
+                __('Too many balance requests. Please try again later.', 'gift-certificates-fluentforms'),
+                array('status' => 429)
+            );
+        }
+
+        set_transient($key, $requests + 1, MINUTE_IN_SECONDS);
         return true;
     }
     
