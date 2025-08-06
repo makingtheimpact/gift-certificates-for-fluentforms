@@ -202,7 +202,7 @@ class GiftCertificateCoupon {
     private function calculate_order_total($form_data) {
         // Determine the total order amount from form data.
 
-        $total = 0;
+        $total = '0';
 
         // Allow admin configuration of total fields
         $settings = get_option('gift_certificates_ff_settings', array());
@@ -212,7 +212,8 @@ class GiftCertificateCoupon {
             $fields = array_map('trim', explode(',', $settings['order_total_field_name']));
         }
 
-        // Allow developers to override or provide additional fields
+        // Allow developers to override or provide additional fields.
+        // Multiple fields are supported; positive values across all fields will be summed.
         $fields = apply_filters('gcff_order_total_fields', $fields, $form_data);
 
         // Backwards compatibility - fallback to common field names if no configuration
@@ -223,33 +224,52 @@ class GiftCertificateCoupon {
         gcff_log('Gift certificate order total fields: ' . json_encode($fields));
 
         foreach ($fields as $field) {
-            $raw = isset($form_data[$field]) ? $form_data[$field] : null;
-            gcff_log('Gift certificate checking field ' . $field . ' with value ' . json_encode($raw));
-            if (isset($form_data[$field])) {
-                $value = floatval($form_data[$field]);
-                if ($value > 0) {
-                    $total = $value;
+            if (!isset($form_data[$field])) {
+                continue;
+            }
+
+            $value = $this->sanitize_amount($form_data[$field]);
+
+            if (bccomp($value, '0', $this->scale) !== 1) {
+                continue;
+            }
+
+            // Determine quantity for this specific field. Look for field-specific quantity
+            // inputs first, then fall back to common quantity field names.
+            $quantity = null;
+            $quantity_patterns = array(
+                $field . '_quantity',
+                $field . '_qty',
+                $field . '-quantity',
+            );
+            foreach ($quantity_patterns as $qfield) {
+                if (isset($form_data[$qfield])) {
+                    $quantity = max(0, intval($form_data[$qfield]));
                     break;
                 }
             }
-        }
 
-        // Apply quantity if a separate quantity field exists
-        $quantity_fields = array('item-quantity', 'quantity', 'qty');
-        $quantity = 1;
-        foreach ($quantity_fields as $qfield) {
-            if (isset($form_data[$qfield])) {
-                $quantity = max(1, intval($form_data[$qfield]));
-                break;
+            if ($quantity === null) {
+                $global_quantity_fields = array('item-quantity', 'quantity', 'qty');
+                foreach ($global_quantity_fields as $gfield) {
+                    if (isset($form_data[$gfield])) {
+                        $quantity = max(0, intval($form_data[$gfield]));
+                        break;
+                    }
+                }
             }
-        }
 
-        // If total matches a unit price field, multiply by quantity
-        if ($total > 0 && isset($form_data['payment_input']) && $total == floatval($form_data['payment_input'])) {
-            $total = floatval($form_data['payment_input']) * $quantity;
-        } elseif ($total <= 0 && isset($form_data['payment_input'])) {
-            // Fallback when only payment_input is found
-            $total = floatval($form_data['payment_input']) * $quantity;
+            if ($quantity === null) {
+                $quantity = 1;
+            }
+
+            if ($quantity === 0) {
+                // Skip fields where quantity is explicitly zero.
+                continue;
+            }
+
+            $field_total = bcmul($value, (string) $quantity, $this->scale);
+            $total = bcadd($total, $field_total, $this->scale);
         }
 
         $total = $this->sanitize_amount($total);

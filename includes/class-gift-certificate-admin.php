@@ -638,7 +638,7 @@ class GiftCertificateAdmin {
     public function order_total_field() {
         $value = $this->settings['order_total_field_name'] ?? '';
         echo "<input type='text' name='gift_certificates_ff_settings[order_total_field_name]' value='" . esc_attr($value) . "' class='regular-text'>";
-        echo '<p class="description">' . __('Field name that contains the order total in redemption forms. Use commas for multiple fields.', 'gift-certificates-fluentforms') . '</p>';
+        echo '<p class="description">' . __('Field names containing payment amounts in redemption forms. Separate multiple fields with commas; amounts from all matching fields will be summed and multiplied by their quantities.', 'gift-certificates-fluentforms') . '</p>';
     }
     
     public function field_mapping_field() {
