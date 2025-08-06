@@ -18,6 +18,11 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+// If the plugin is already loaded, bail early to prevent redeclaration errors
+if (function_exists('gift_certificates_ff_init')) {
+    return;
+}
+
 // Define plugin constants
 define('GIFT_CERTIFICATES_FF_VERSION', '1.1.0');
 define('GIFT_CERTIFICATES_FF_PLUGIN_DIR', plugin_dir_path(__FILE__));
@@ -247,9 +252,11 @@ class GiftCertificatesForFluentForms {
 }
 
 // Initialize the plugin
-function gift_certificates_ff_init() {
-    return GiftCertificatesForFluentForms::get_instance();
+if (!function_exists('gift_certificates_ff_init')) {
+    function gift_certificates_ff_init() {
+        return GiftCertificatesForFluentForms::get_instance();
+    }
 }
 
 // Start the plugin
-gift_certificates_ff_init(); 
+gift_certificates_ff_init();
