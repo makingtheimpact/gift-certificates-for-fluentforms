@@ -19,9 +19,6 @@ class GiftCertificateDatabase {
         $this->gift_certificates_table = $wpdb->prefix . 'gift_certificates';
         $this->transactions_table = $wpdb->prefix . 'gift_certificate_transactions';
         $this->scale = (int) apply_filters('gcff_decimal_scale', $this->scale);
-
-        // Ensure required columns exist
-        $this->maybe_add_design_id_column();
     }
     
     public function create_tables() {
@@ -464,7 +461,7 @@ class GiftCertificateDatabase {
     /**
      * Add the design_id column to the gift certificates table if it does not already exist
      */
-    private function maybe_add_design_id_column() {
+    public function maybe_add_design_id_column() {
         global $wpdb;
 
         $column = $wpdb->get_results(
