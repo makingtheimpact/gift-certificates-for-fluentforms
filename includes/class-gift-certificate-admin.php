@@ -178,6 +178,9 @@ class GiftCertificateAdmin {
         if ($certificate_id) {
             $certificate = $this->database->get_gift_certificate($certificate_id);
             $is_edit = (bool) $certificate;
+        } else {
+            $certificate = new \stdClass();
+            $certificate->coupon_code = $this->generate_coupon_code();
         }
 
         $designs_class = new GiftCertificateDesigns();

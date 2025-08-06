@@ -9,6 +9,7 @@ A comprehensive WordPress plugin that extends Fluent Forms Pro to sell and redee
 - **Hosting Platform Compatible**: Works with all major WordPress hosting platforms
 - **Webhook Integration**: Automatically processes Fluent Forms submissions to create gift certificates
 - **Coupon Management**: Integrates with Fluent Forms Pro coupon system for seamless redemption
+- **Auto-Generated Codes**: New certificates are pre-filled with a properly formatted coupon code
 - **Balance Tracking**: Real-time balance updates and transaction history
 - **Scheduled Delivery**: Send gift certificates immediately or on a specific date
 - **REST API**: Built-in API endpoints for balance checking and management
