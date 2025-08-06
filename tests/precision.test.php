@@ -8,6 +8,7 @@ define('ABSPATH', __DIR__ . '/../');
 function add_filter() {}
 function add_action() {}
 function do_action() {}
+function has_action() { return false; }
 function gcff_log() {}
 function apply_filters($tag, $value) { return $value; }
 
