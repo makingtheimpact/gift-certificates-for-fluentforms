@@ -1,16 +1,19 @@
 <?php
 // Basic assertions to verify precision handling.
 
-// Define ABSPATH to satisfy plugin files.
+// Define ABSPATH to satisfy plugin files and enable logging.
 define('ABSPATH', __DIR__ . '/../');
+define('WP_DEBUG', true);
 
 // Stub WordPress functions used in constructors or methods.
 function add_filter() {}
 function add_action() {}
 function do_action() {}
 function has_action() { return false; }
-function gcff_log() {}
 function apply_filters($tag, $value) { return $value; }
+function get_option($name, $default = array()) { return array(); }
+
+require_once __DIR__ . '/../includes/gcff-functions.php';
 
 // Setup a stub wpdb implementation.
 class WPDBStub {
