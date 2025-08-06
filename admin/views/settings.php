@@ -8,330 +8,46 @@ if (!function_exists('is_plugin_active')) {
     require_once ABSPATH . 'wp-admin/includes/plugin.php';
 }
 
-// Handle form submission
-if (isset($_POST['submit']) && wp_verify_nonce($_POST['gift_certificates_ff_nonce'], 'gift_certificates_ff_settings')) {
-    $input = $_POST['gift_certificates_ff_settings'];
-    
-    // Sanitize the input
-    $sanitized = array();
-    $sanitized['gift_certificate_form_id'] = intval($input['gift_certificate_form_id']);
-    $sanitized['amount_field_name'] = sanitize_text_field($input['amount_field_name']);
-    $sanitized['recipient_email_field_name'] = sanitize_text_field($input['recipient_email_field_name']);
-    $sanitized['recipient_name_field_name'] = sanitize_text_field($input['recipient_name_field_name']);
-    $sanitized['sender_name_field_name'] = sanitize_text_field($input['sender_name_field_name']);
-    $sanitized['message_field_name'] = sanitize_text_field($input['message_field_name']);
-    $sanitized['delivery_date_field_name'] = sanitize_text_field($input['delivery_date_field_name']);
-    $sanitized['design_field_name'] = sanitize_text_field($input['design_field_name']);
-    $sanitized['balance_check_page_id'] = intval($input['balance_check_page_id']);
-    $sanitized['email_template'] = wp_kses_post($input['email_template']);
-    $sanitized['email_format'] = sanitize_text_field($input['email_format']);
-    $sanitized['enable_logging'] = !empty($input['enable_logging']);
-    
-    // Handle allowed form IDs for redemption
-    $sanitized['allowed_form_ids'] = array();
-    if (isset($input['allowed_form_ids']) && is_array($input['allowed_form_ids'])) {
-        foreach ($input['allowed_form_ids'] as $form_id) {
-            $form_id = intval($form_id);
-            if ($form_id > 0) {
-                $sanitized['allowed_form_ids'][] = strval($form_id);
-            }
-        }
-    }
-    
-    $updated = update_option('gift_certificates_ff_settings', $sanitized);
-    if ($updated) {
-        echo '<div class="notice notice-success is-dismissible"><p>' . __('Settings saved successfully!', 'gift-certificates-fluentforms') . '</p></div>';
-    } else {
-        echo '<div class="notice notice-error is-dismissible"><p>' . __('Error saving settings. Please try again.', 'gift-certificates-fluentforms') . '</p></div>';
-    }
-}
-
-$settings = get_option('gift_certificates_ff_settings', array());
 ?>
-
 <div class="wrap">
     <h1><?php _e('Gift Certificate Settings', 'gift-certificates-fluentforms'); ?></h1>
-    
-    <form method="post" action="">
-        <?php wp_nonce_field('gift_certificates_ff_settings', 'gift_certificates_ff_nonce'); ?>
-        
-        <?php
-        // Check if Fluent Forms Pro coupon module is available
-        global $wpdb;
-        $coupons_table = $wpdb->prefix . 'fluentform_coupons';
-        $coupon_module_available = $wpdb->get_var("SHOW TABLES LIKE '{$coupons_table}'") === $coupons_table;
-        
-        if ($coupon_module_available): ?>
-            <div class="notice notice-success">
-                <p><strong><?php _e('Coupon Module Active', 'gift-certificates-fluentforms'); ?></strong></p>
-                <p><?php _e('Fluent Forms Pro Coupon module is installed and active. Gift certificates will automatically create coupon codes that can be used in your forms.', 'gift-certificates-fluentforms'); ?></p>
-                <p><?php _e('Using table:', 'gift-certificates-fluentforms'); ?> <code><?php echo esc_html($coupons_table); ?></code></p>
-            </div>
-        <?php else: ?>
-            <div class="notice notice-warning">
-                <p><strong><?php _e('Coupon Module Not Found', 'gift-certificates-fluentforms'); ?></strong></p>
-                <p><?php _e('The Fluent Forms Pro Coupon module is not installed. Gift certificates will be created but coupon codes will not be generated.', 'gift-certificates-fluentforms'); ?></p>
-                <p><?php _e('To enable coupon functionality, please install the Fluent Forms Pro Coupon addon from Fluent Forms → Add-ons.', 'gift-certificates-fluentforms'); ?></p>
-                <p><?php _e('Expected table:', 'gift-certificates-fluentforms'); ?> <code><?php echo esc_html($coupons_table); ?></code></p>
-            </div>
-        <?php endif; ?>
-        
-        <table class="form-table">
-            <tr>
-                <th scope="row"><?php _e('Gift Certificate Form ID', 'gift-certificates-fluentforms'); ?></th>
-                <td>
-                    <select name="gift_certificates_ff_settings[gift_certificate_form_id]">
-                        <option value=""><?php _e('Select a form', 'gift-certificates-fluentforms'); ?></option>
-                        <?php
-                        // More flexible Fluent Forms detection
-                        $fluent_forms_active = false;
-                        $wp_fluent_available = false;
-                        
-                        // Check multiple ways Fluent Forms might be available
-                        if (class_exists('FluentForm\Framework\Foundation\Bootstrap')) {
-                            $fluent_forms_active = true;
-                        } elseif (class_exists('FluentFormPro\Framework\Foundation\Bootstrap')) {
-                            $fluent_forms_active = true;
-                        } elseif (function_exists('wpFluent')) {
-                            $fluent_forms_active = true;
-                            $wp_fluent_available = true;
-                        } elseif (is_plugin_active('fluentform/fluentform.php')) {
-                            $fluent_forms_active = true;
-                        } elseif (is_plugin_active('fluentformpro/fluentformpro.php')) {
-                            $fluent_forms_active = true;
-                        }
-                        
-                        if ($fluent_forms_active && function_exists('wpFluent')) {
-                            try {
-                                $forms = wpFluent()->table('fluentform_forms')->select(array('id', 'title'))->get();
-                                if (!empty($forms)) {
-                                    foreach ($forms as $form) {
-                                        $selected = selected($settings['gift_certificate_form_id'] ?? '', $form->id, false);
-                                        echo '<option value="' . esc_attr($form->id) . '" ' . $selected . '>' . esc_html($form->title) . '</option>';
-                                    }
-                                } else {
-                                    echo '<option value="" disabled>' . __('No forms found', 'gift-certificates-fluentforms') . '</option>';
-                                }
-                            } catch (Exception $e) {
-                                echo '<option value="" disabled>' . __('Error loading forms: ' . esc_html($e->getMessage()), 'gift-certificates-fluentforms') . '</option>';
-                            }
-                        } else {
-                            echo '<option value="" disabled>' . __('Fluent Forms not found or not active', 'gift-certificates-fluentforms') . '</option>';
-                        }
-                        ?>
-                    </select>
-                    <p class="description"><?php _e('Select the Fluent Forms form that will be used for gift certificate purchases.', 'gift-certificates-fluentforms'); ?></p>
-                    <?php
-                    $show_debug = current_user_can('manage_options') && defined('WP_DEBUG') && WP_DEBUG;
-                    $show_debug = apply_filters('gift_certificates_ff_show_debug_info', $show_debug);
-                    if ($show_debug): ?>
-                        <p class="description" style="color: #666;">
-                            <?php _e('Debug:', 'gift-certificates-fluentforms'); ?>
-                            <?php echo esc_html__('Fluent Forms active:', 'gift-certificates-fluentforms'); ?> <?php echo $fluent_forms_active ? 'Yes' : 'No'; ?>,
-                            <?php echo esc_html__('wpFluent function:', 'gift-certificates-fluentforms'); ?> <?php echo function_exists('wpFluent') ? 'Yes' : 'No'; ?><br>
-                            <?php echo esc_html__('Classes found:', 'gift-certificates-fluentforms'); ?>
-                            <?php echo esc_html__('FluentForm Framework Bootstrap:', 'gift-certificates-fluentforms'); ?> <?php echo class_exists('FluentForm\Framework\Foundation\Bootstrap') ? 'Yes' : 'No'; ?>,
-                            <?php echo esc_html__('FluentFormPro Framework Bootstrap:', 'gift-certificates-fluentforms'); ?> <?php echo class_exists('FluentFormPro\Framework\Foundation\Bootstrap') ? 'Yes' : 'No'; ?>
-                        </p>
-                    <?php endif; ?>
-                </td>
-            </tr>
-            
-            <tr>
-                <th scope="row"><?php _e('Amount Field', 'gift-certificates-fluentforms'); ?></th>
-                <td>
-                    <input type="text" name="gift_certificates_ff_settings[amount_field_name]" value="<?php echo esc_attr($settings['amount_field_name'] ?? ''); ?>" class="regular-text">
-                    <p class="description"><?php _e('Enter the field name for the gift certificate amount.', 'gift-certificates-fluentforms'); ?></p>
-                </td>
-            </tr>
-            
-            <tr>
-                <th scope="row"><?php _e('Recipient Email Field', 'gift-certificates-fluentforms'); ?></th>
-                <td>
-                    <input type="text" name="gift_certificates_ff_settings[recipient_email_field_name]" value="<?php echo esc_attr($settings['recipient_email_field_name'] ?? ''); ?>" class="regular-text">
-                    <p class="description"><?php _e('Enter the field name for the recipient email.', 'gift-certificates-fluentforms'); ?></p>
-                </td>
-            </tr>
-            
-            <tr>
-                <th scope="row"><?php _e('Recipient Name Field', 'gift-certificates-fluentforms'); ?></th>
-                <td>
-                    <input type="text" name="gift_certificates_ff_settings[recipient_name_field_name]" value="<?php echo esc_attr($settings['recipient_name_field_name'] ?? ''); ?>" class="regular-text">
-                    <p class="description"><?php _e('Enter the field name for the recipient name.', 'gift-certificates-fluentforms'); ?></p>
-                </td>
-            </tr>
-            
-            <tr>
-                <th scope="row"><?php _e('Sender Name Field', 'gift-certificates-fluentforms'); ?></th>
-                <td>
-                    <input type="text" name="gift_certificates_ff_settings[sender_name_field_name]" value="<?php echo esc_attr($settings['sender_name_field_name'] ?? ''); ?>" class="regular-text">
-                    <p class="description"><?php _e('Enter the field name for the sender name.', 'gift-certificates-fluentforms'); ?></p>
-                </td>
-            </tr>
-            
-            <tr>
-                <th scope="row"><?php _e('Message Field', 'gift-certificates-fluentforms'); ?></th>
-                <td>
-                    <input type="text" name="gift_certificates_ff_settings[message_field_name]" value="<?php echo esc_attr($settings['message_field_name'] ?? ''); ?>" class="regular-text">
-                    <p class="description"><?php _e('Enter the field name for the personal message.', 'gift-certificates-fluentforms'); ?></p>
-                </td>
-            </tr>
-            
-            <tr>
-                <th scope="row"><?php _e('Delivery Date Field', 'gift-certificates-fluentforms'); ?></th>
-                <td>
-                    <input type="text" name="gift_certificates_ff_settings[delivery_date_field_name]" value="<?php echo esc_attr($settings['delivery_date_field_name'] ?? ''); ?>" class="regular-text">
-                    <p class="description"><?php _e('Enter the field name for the delivery date (optional).', 'gift-certificates-fluentforms'); ?></p>
-                </td>
-            </tr>
-            
-            <tr>
-                <th scope="row"><?php _e('Design Selection Field', 'gift-certificates-fluentforms'); ?></th>
-                <td>
-                    <input type="text" name="gift_certificates_ff_settings[design_field_name]" value="<?php echo esc_attr($settings['design_field_name'] ?? ''); ?>" class="regular-text">
-                    <p class="description"><?php _e('Enter the field name for the gift certificate design selection (radio/select field). Leave empty to use default design.', 'gift-certificates-fluentforms'); ?></p>
-                    <p class="description"><?php _e('This field should contain the design ID as the value (e.g., "default", "design_123").', 'gift-certificates-fluentforms'); ?></p>
-                    
-                    <h4><?php _e('Available Design IDs for Reference:', 'gift-certificates-fluentforms'); ?></h4>
-                    <?php
-                    $designs = new \GiftCertificatesFluentForms\GiftCertificateDesigns();
-                    $design_options = $designs->get_design_options_for_form();
-                    
-                    if (!empty($design_options)) {
-                        echo '<table class="widefat gcff-table" style="margin-top: 10px;">';
-                        echo '<thead><tr><th>' . __('Design ID', 'gift-certificates-fluentforms') . '</th><th>' . __('Design Name', 'gift-certificates-fluentforms') . '</th><th>' . __('Status', 'gift-certificates-fluentforms') . '</th></tr></thead>';
-                        echo '<tbody>';
-                        
-                        foreach ($design_options as $design_id => $design_name) {
-                            $design = $designs->get_design($design_id);
-                            $status = $design && $design['active'] ? __('Active', 'gift-certificates-fluentforms') : __('Inactive', 'gift-certificates-fluentforms');
-                            $status_class = $design && $design['active'] ? 'status-active' : 'status-inactive';
-                            
-                            echo '<tr>';
-                            echo '<td><code>' . esc_html($design_id) . '</code></td>';
-                            echo '<td>' . esc_html($design_name) . '</td>';
-                            echo '<td><span class="' . $status_class . '">' . $status . '</span></td>';
-                            echo '</tr>';
-                        }
-                        
-                        echo '</tbody></table>';
-                    } else {
-                        echo '<p>' . __('No active designs found. Please create designs in Gift Certificates → Design Templates.', 'gift-certificates-fluentforms') . '</p>';
-                    }
-                    ?>
-                    <h4><?php _e('Design Field Setup Instructions:', 'gift-certificates-fluentforms'); ?></h4>
-                    <ol>
-                        <li><?php _e('In your Fluent Forms form, add a Radio or Select field for design selection', 'gift-certificates-fluentforms'); ?></li>
-                        <li><?php _e('Set the field name to match what you enter above', 'gift-certificates-fluentforms'); ?></li>
-                        <li><?php _e('Configure the options with the exact values shown above.', 'gift-certificates-fluentforms'); ?></li>
-                        <li><?php _e('Set the option labels to user-friendly names (e.g., "Classic Design", "Holiday Theme")', 'gift-certificates-fluentforms'); ?></li>
-                        <li><?php _e('The option values must exactly match the design IDs shown above', 'gift-certificates-fluentforms'); ?></li>
-                    </ol>      
-                    <p>For more detailed instructions on how to set up the design field, please refer to the How to Use page.</p>            
-                </td>
-            </tr>
-            
-            <tr>
-                <th scope="row"><?php _e('Balance Check Page', 'gift-certificates-fluentforms'); ?></th>
-                <td>
-                    <select name="gift_certificates_ff_settings[balance_check_page_id]">
-                        <option value=""><?php _e('Select a page...', 'gift-certificates-fluentforms'); ?></option>
-                        <?php
-                        $pages = get_pages(array(
-                            'sort_column' => 'post_title',
-                            'sort_order' => 'ASC'
-                        ));
-                        foreach ($pages as $page) {
-                            $selected = selected($settings['balance_check_page_id'] ?? '', $page->ID, false);
-                            echo '<option value="' . esc_attr($page->ID) . '" ' . $selected . '>' . esc_html($page->post_title) . '</option>';
-                        }
-                        ?>
-                    </select>
-                    <p class="description"><?php _e('Select the page where users can check their gift certificate balance. You can use the shortcode [gift_certificate_balance_check] on this page.', 'gift-certificates-fluentforms'); ?></p>
-                </td>
-            </tr>
-            
-            <tr>
-                <th scope="row"><?php _e('Forms for Redemption', 'gift-certificates-fluentforms'); ?></th>
-                <td>
-                    <select name="gift_certificates_ff_settings[allowed_form_ids][]" multiple style="width: 100%; min-height: 100px;">
-                        <?php
-                        if ($fluent_forms_active && function_exists('wpFluent')) {
-                            try {
-                                $forms = wpFluent()->table('fluentform_forms')->select(array('id', 'title'))->get();
-                                $selected_forms = $settings['allowed_form_ids'] ?? array();
-                                
-                                if (!empty($forms)) {
-                                    foreach ($forms as $form) {
-                                        $selected = in_array(strval($form->id), $selected_forms) ? 'selected' : '';
-                                        echo '<option value="' . esc_attr($form->id) . '" ' . $selected . '>' . esc_html($form->title) . '</option>';
-                                    }
-                                } else {
-                                    echo '<option value="" disabled>' . __('No forms found', 'gift-certificates-fluentforms') . '</option>';
-                                }
-                            } catch (Exception $e) {
-                                echo '<option value="" disabled>' . __('Error loading forms: ' . esc_html($e->getMessage()), 'gift-certificates-fluentforms') . '</option>';
-                            }
-                        } else {
-                            echo '<option value="" disabled>' . __('Fluent Forms not found or not active', 'gift-certificates-fluentforms') . '</option>';
-                        }
-                        ?>
-                    </select>
-                    <p class="description"><?php _e('Select the forms where gift certificates can be redeemed. Hold Ctrl/Cmd to select multiple forms. Leave empty to allow redemption on all forms.', 'gift-certificates-fluentforms'); ?></p>
-                </td>
-            </tr>
-            
-            <tr>
-                <th scope="row"><?php _e('Coupon Table Name', 'gift-certificates-fluentforms'); ?></th>
-                <td>
-                    <input type="text" name="gift_certificates_ff_settings[coupon_table_name]" value="<?php echo esc_attr($settings['coupon_table_name'] ?? ''); ?>" class="regular-text" placeholder="fluentform_coupons" pattern="[A-Za-z0-9_]+" title="<?php esc_attr_e('Only letters, numbers, and underscores are allowed.', 'gift-certificates-fluentforms'); ?>">
-                    <p class="description"><?php _e('Leave empty to use the default table name. Only change this if your Fluent Forms coupon table has a different name.', 'gift-certificates-fluentforms'); ?></p>
-                    <p class="description"><?php _e('Allowed characters: letters, numbers, and underscores.', 'gift-certificates-fluentforms'); ?></p>
-                    <p class="description"><?php _e('Note: The table prefix is automatically added by Fluent Forms.', 'gift-certificates-fluentforms'); ?></p>
-                    <p class="description"><?php _e('Current default:', 'gift-certificates-fluentforms'); ?> <code>fluentform_coupons</code></p>
-                </td>
-            </tr>
 
-            <tr>
-                <th scope="row"><?php _e('Enable Detailed Logging', 'gift-certificates-fluentforms'); ?></th>
-                <td>
-                    <label>
-                        <input type="checkbox" name="gift_certificates_ff_settings[enable_logging]" value="1" <?php checked($settings['enable_logging'] ?? 0, 1); ?>>
-                        <?php _e('Log additional debugging details', 'gift-certificates-fluentforms'); ?>
-                    </label>
-                    <p class="description"><?php _e('Disable on production sites to avoid logging sensitive information.', 'gift-certificates-fluentforms'); ?></p>
-                </td>
-            </tr>
-            
-            <tr>
-                <th scope="row"><?php _e('Email Template', 'gift-certificates-fluentforms'); ?></th>
-                <td>
-                    <textarea name="gift_certificates_ff_settings[email_template]" rows="10" cols="50" class="large-text"><?php echo esc_textarea($settings['email_template'] ?? ''); ?></textarea>
-                    <p class="description"><?php _e('Available placeholders: {recipient_name}, {sender_name}, {amount}, {coupon_code}, {message}, {site_name}, {site_url}, {balance_check_url}', 'gift-certificates-fluentforms'); ?></p>
-                </td>
-            </tr>
-            
-            <tr>
-                <th scope="row"><?php _e('Email Format', 'gift-certificates-fluentforms'); ?></th>
-                <td>
-                    <select name="gift_certificates_ff_settings[email_format]">
-                        <option value="text" <?php selected($settings['email_format'] ?? 'text', 'text'); ?>><?php _e('Plain Text', 'gift-certificates-fluentforms'); ?></option>
-                        <option value="html" <?php selected($settings['email_format'] ?? 'text', 'html'); ?>><?php _e('HTML', 'gift-certificates-fluentforms'); ?></option>
-                    </select>
-                </td>
-            </tr>
-        </table>
-        
-        <?php submit_button(); ?>
+    <?php
+    // Check if Fluent Forms Pro coupon module is available
+    global $wpdb;
+    $coupons_table = $wpdb->prefix . 'fluentform_coupons';
+    $coupon_module_available = $wpdb->get_var("SHOW TABLES LIKE '{$coupons_table}'") === $coupons_table;
+
+    if ($coupon_module_available): ?>
+        <div class="notice notice-success">
+            <p><strong><?php _e('Coupon Module Active', 'gift-certificates-fluentforms'); ?></strong></p>
+            <p><?php _e('Fluent Forms Pro Coupon module is installed and active. Gift certificates will automatically create coupon codes that can be used in your forms.', 'gift-certificates-fluentforms'); ?></p>
+            <p><?php _e('Using table:', 'gift-certificates-fluentforms'); ?> <code><?php echo esc_html($coupons_table); ?></code></p>
+        </div>
+    <?php else: ?>
+        <div class="notice notice-warning">
+            <p><strong><?php _e('Coupon Module Not Found', 'gift-certificates-fluentforms'); ?></strong></p>
+            <p><?php _e('The Fluent Forms Pro Coupon module is not installed. Gift certificates will be created but coupon codes will not be generated.', 'gift-certificates-fluentforms'); ?></p>
+            <p><?php _e('To enable coupon functionality, please install the Fluent Forms Pro Coupon addon from Fluent Forms → Add-ons.', 'gift-certificates-fluentforms'); ?></p>
+            <p><?php _e('Expected table:', 'gift-certificates-fluentforms'); ?> <code><?php echo esc_html($coupons_table); ?></code></p>
+        </div>
+    <?php endif; ?>
+
+    <form method="post" action="options.php">
+        <?php
+        settings_fields('gift_certificates_ff_settings');
+        do_settings_sections('gift_certificates_ff_settings');
+        submit_button();
+        ?>
     </form>
-    
+
     <div class="gift-certificate-settings-help">
         <h3><?php _e('Field Mapping Instructions', 'gift-certificates-fluentforms'); ?></h3>
         <p><?php _e('Enter the exact field names from your Fluent Forms form. You can find these in the form builder under each field\'s settings.', 'gift-certificates-fluentforms'); ?></p>
-        
+
         <h3><?php _e('Email Template Variables', 'gift-certificates-fluentforms'); ?></h3>
         <p><?php _e('You can use these variables in your email template:', 'gift-certificates-fluentforms'); ?></p>
-         <ul style="list-style-type: disc;">
+        <ul style="list-style-type: disc;">
             <li><code>{recipient_name}</code> - <?php _e('Recipient\'s name', 'gift-certificates-fluentforms'); ?></li>
             <li><code>{sender_name}</code> - <?php _e('Sender\'s name', 'gift-certificates-fluentforms'); ?></li>
             <li><code>{amount}</code> - <?php _e('Gift certificate amount', 'gift-certificates-fluentforms'); ?></li>
@@ -368,63 +84,4 @@ $settings = get_option('gift_certificates_ff_settings', array());
     border-radius: 3px;
     font-family: monospace;
 }
-
-.gift-certificate-debug-section {
-    background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    padding: 20px;
-    margin-top: 30px;
-}
-
-.status-active {
-    color: #46b450;
-    font-weight: bold;
-}
-
-.status-inactive {
-    color: #dc3232;
-    font-weight: bold;
-}
-
-.design-mapping-instructions {
-    background: #f9f9f9;
-    padding: 15px;
-    margin-top: 10px;
-    border-left: 4px solid #0073aa;
-    border-radius: 3px;
-}
-
-.available-designs-reference {
-    margin-top: 15px;
-    padding: 10px;
-    background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 3px;
-}
-
-.gift-certificate-debug-section h3 {
-    color: #0073aa;
-    margin-top: 0;
-}
-
-#webhook-test-result,
-#form-fields-debug {
-    margin-top: 10px;
-    padding: 10px;
-    background: #f9f9f9;
-    border: 1px solid #ddd;
-    border-radius: 3px;
-}
-
-#form-fields-debug pre {
-    margin: 0;
-    white-space: pre-wrap;
-    font-family: monospace;
-    font-size: 12px;
-}
-
-#test-email-address {
-    margin-right: 10px;
-}
-</style> 
+</style>
