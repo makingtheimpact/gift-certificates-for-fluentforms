@@ -47,12 +47,12 @@ class GiftCertificateWebhook {
         
         // Check if this is a redemption form
         $allowed_form_ids = $this->settings['allowed_form_ids'] ?? array();
-        if (in_array(strval($form->id), $allowed_form_ids)) {
+        if (empty($allowed_form_ids) || in_array(strval($form->id), $allowed_form_ids, true)) {
             gcff_log("Gift Certificate Webhook: Processing gift certificate redemption - Entry ID: {$entry_id}");
             $this->process_gift_certificate_redemption($entry_id, $form_data, $form);
             return;
         }
-        
+
         gcff_log("Gift Certificate Webhook: Form ID {$form->id} not configured for gift certificate processing");
     }
     

@@ -23,7 +23,7 @@ Gift Certificates for Fluent Forms is a comprehensive solution for managing gift
 == Installation ==
 1. Upload the plugin files to the `/wp-content/plugins/gift-certificates-for-fluentforms/` directory or install through the WordPress admin.
 2. Activate the plugin through the "Plugins" menu in WordPress.
-3. Go to "Gift Certificates → Settings" to configure form mappings and email options.
+3. Go to "Gift Certificates → Settings" to configure form mappings, allowed redemption forms, and email options.
 
 == Privacy ==
 Balance endpoints expose only the gift certificate's current balance and status. Recipient information is never returned in API responses to protect personal data.
