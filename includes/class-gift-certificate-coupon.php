@@ -33,7 +33,10 @@ class GiftCertificateCoupon {
         if (!$this->is_gift_certificate_coupon($coupon)) {
             return $is_valid;
         }
-        
+
+        gcff_log('Gift certificate validation for code: ' . $coupon->code);
+        gcff_log('Gift certificate form data: ' . json_encode($form_data));
+
         // Get gift certificate data
         $gift_certificate = $this->database->get_gift_certificate_by_coupon_code($coupon->code);
         
@@ -56,9 +59,10 @@ class GiftCertificateCoupon {
         if ($current_form_id && !$this->is_form_allowed_for_redemption($current_form_id)) {
             return false;
         }
-        
+
         // Check the order total and set coupon amount accordingly
         $order_total = $this->calculate_order_total($form_data);
+        gcff_log('Gift certificate order total: ' . $order_total . ', Current balance: ' . $gift_certificate->current_balance);
         $coupon->amount = bccomp($order_total, $gift_certificate->current_balance, $this->scale) === 1
             ? $gift_certificate->current_balance
             : $order_total;
@@ -87,7 +91,11 @@ class GiftCertificateCoupon {
         if (!$this->is_gift_certificate_coupon($coupon)) {
             return;
         }
-        
+
+        gcff_log('Tracking gift certificate coupon: ' . $coupon->code);
+        gcff_log('Gift certificate form data: ' . json_encode($form_data));
+        gcff_log('Gift certificate coupon amount: ' . (isset($coupon->amount) ? $coupon->amount : '')); 
+
         // Look up the related gift certificate
         $gift_certificate = $this->database->get_gift_certificate_by_coupon_code($coupon->code);
 
@@ -104,6 +112,7 @@ class GiftCertificateCoupon {
         if (bccomp($amount_used, '0', $this->scale) !== 1) {
             $amount_used = $this->calculate_order_total($form_data);
         }
+        gcff_log('Gift certificate amount used after recalculation: ' . $amount_used);
 
         // Update balance in the database and retrieve the actual amount used
         $update_result = $this->database->update_gift_certificate_balance($gift_certificate->id, $amount_used);
@@ -115,6 +124,7 @@ class GiftCertificateCoupon {
 
         $new_balance = $update_result['new_balance'];
         $amount_used = $update_result['amount_used'];
+        gcff_log('Gift certificate new balance: ' . $new_balance);
 
         // Record transaction
         $this->database->record_transaction(
@@ -210,6 +220,8 @@ class GiftCertificateCoupon {
         if (empty($fields)) {
             $fields = array('total', 'order_total', 'cart_total', 'amount', 'price', 'payment_input');
         }
+
+        gcff_log('Gift certificate order total fields: ' . json_encode($fields));
 
         foreach ($fields as $field) {
             if (!isset($form_data[$field])) {
