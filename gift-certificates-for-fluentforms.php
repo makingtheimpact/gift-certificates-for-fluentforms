@@ -188,6 +188,12 @@ class GiftCertificatesForFluentForms {
         // Create database tables
         $database = new GiftCertificateDatabase();
         $database->create_tables();
+
+        // Ensure the design_id column exists only once
+        if (!get_option('gcff_design_id_column_added')) {
+            $database->maybe_add_design_id_column();
+            update_option('gcff_design_id_column_added', 1);
+        }
         
         // Set default options
         $this->set_default_options();
