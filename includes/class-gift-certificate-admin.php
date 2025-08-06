@@ -122,6 +122,14 @@ class GiftCertificateAdmin {
         );
 
         add_settings_field(
+            'order_total_field_name',
+            __('Order Total Field', 'gift-certificates-fluentforms'),
+            array($this, 'order_total_field'),
+            'gift_certificates_ff_settings',
+            'gift_certificates_ff_general'
+        );
+
+        add_settings_field(
             'balance_check_page_id',
             __('Balance Check Page', 'gift-certificates-fluentforms'),
             array($this, 'balance_check_page_field'),
@@ -626,6 +634,12 @@ class GiftCertificateAdmin {
         echo '</select>';
         echo '<p class="description">' . __('Select the forms where gift certificates can be redeemed. Leave empty to allow all forms.', 'gift-certificates-fluentforms') . '</p>';
     }
+
+    public function order_total_field() {
+        $value = $this->settings['order_total_field_name'] ?? '';
+        echo "<input type='text' name='gift_certificates_ff_settings[order_total_field_name]' value='" . esc_attr($value) . "' class='regular-text'>";
+        echo '<p class="description">' . __('Field name that contains the order total in redemption forms. Use commas for multiple fields.', 'gift-certificates-fluentforms') . '</p>';
+    }
     
     public function field_mapping_field() {
         $field_names = array(
@@ -698,7 +712,8 @@ class GiftCertificateAdmin {
         // Sanitize field names
         $field_names = array(
             'amount_field_name', 'recipient_email_field_name', 'recipient_name_field_name',
-            'sender_name_field_name', 'message_field_name', 'delivery_date_field_name', 'design_field_name'
+            'sender_name_field_name', 'message_field_name', 'delivery_date_field_name', 'design_field_name',
+            'order_total_field_name'
         );
         
         foreach ($field_names as $field) {

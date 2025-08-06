@@ -178,9 +178,23 @@ class GiftCertificateCoupon {
 
         $total = 0;
 
-        // Look for common fields that may represent the order subtotal
-        $total_fields = array('total', 'order_total', 'cart_total', 'amount', 'price', 'payment_input');
-        foreach ($total_fields as $field) {
+        // Allow admin configuration of total fields
+        $settings = get_option('gift_certificates_ff_settings', array());
+        $fields = array();
+
+        if (!empty($settings['order_total_field_name'])) {
+            $fields = array_map('trim', explode(',', $settings['order_total_field_name']));
+        }
+
+        // Allow developers to override or provide additional fields
+        $fields = apply_filters('gcff_order_total_fields', $fields, $form_data);
+
+        // Backwards compatibility - fallback to common field names if no configuration
+        if (empty($fields)) {
+            $fields = array('total', 'order_total', 'cart_total', 'amount', 'price', 'payment_input');
+        }
+
+        foreach ($fields as $field) {
             if (isset($form_data[$field])) {
                 $value = floatval($form_data[$field]);
                 if ($value > 0) {
@@ -208,7 +222,13 @@ class GiftCertificateCoupon {
             $total = floatval($form_data['payment_input']) * $quantity;
         }
 
-        return $this->sanitize_amount($total);
+        $total = $this->sanitize_amount($total);
+
+        if (bccomp($total, '0', $this->scale) !== 1) {
+            gcff_log('Gift Certificate: Unable to detect order total. Checked fields: ' . implode(', ', $fields));
+        }
+
+        return $total;
     }
 
     private function sanitize_amount($amount) {
