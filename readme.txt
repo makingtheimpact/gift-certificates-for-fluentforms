@@ -13,6 +13,7 @@ Extend Fluent Forms Pro to sell and redeem gift certificates with webhook integr
 Gift Certificates for Fluent Forms is a comprehensive solution for managing gift certificates through Fluent Forms. It offers secure integration with Fluent Forms Pro to create, track, and redeem certificates. Key features include:
 * Webhook integration to automatically generate certificates from form submissions
 * Coupon management and balance tracking
+* Automatically generated coupon codes when creating certificates
 * Scheduled delivery and customizable email templates
 * Shortcodes and REST API endpoints for checking balances and purchasing
 * Balance endpoint requires a WordPress nonce for requests
