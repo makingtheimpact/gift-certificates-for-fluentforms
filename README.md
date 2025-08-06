@@ -70,9 +70,10 @@ For the design selection field:
 
 1. Go to **Gift Certificates → Settings**
 2. Select your gift certificate form
-3. Map the form fields to gift certificate fields
-4. Configure email settings
-5. Save settings
+3. Choose which forms can redeem gift certificate coupons (leave empty to allow all)
+4. Map the form fields to gift certificate fields
+5. Configure email settings
+6. Save settings
 
 ### 3. Add Payment Integration
 
