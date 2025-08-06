@@ -439,23 +439,33 @@ class GiftCertificateDatabase {
 
     private function add_foreign_key_constraint() {
         global $wpdb;
-        
+
         // Check if foreign key constraint already exists
-        $constraint_exists = $wpdb->get_var("
-            SELECT COUNT(*) 
-            FROM information_schema.KEY_COLUMN_USAGE 
-            WHERE TABLE_SCHEMA = DATABASE() 
-            AND TABLE_NAME = '{$this->transactions_table}' 
-            AND REFERENCED_TABLE_NAME = '{$this->gift_certificates_table}'
-        ");
-        
+        try {
+            $constraint_exists = $wpdb->get_var("
+                SELECT COUNT(*)
+                FROM information_schema.KEY_COLUMN_USAGE
+                WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = '{$this->transactions_table}'
+                AND REFERENCED_TABLE_NAME = '{$this->gift_certificates_table}'
+            ");
+
+            if ($constraint_exists === null) {
+                gcff_log('Gift Certificate: Unable to verify existing foreign key constraint - skipping', 'warning');
+                return;
+            }
+        } catch (\Throwable $e) {
+            gcff_log('Gift Certificate: Error checking foreign key constraint - ' . $e->getMessage(), 'warning');
+            return;
+        }
+
         if (!$constraint_exists) {
             // Add foreign key constraint
             $wpdb->query("
-                ALTER TABLE {$this->transactions_table} 
-                ADD CONSTRAINT fk_gift_certificate_transactions 
-                FOREIGN KEY (gift_certificate_id) 
-                REFERENCES {$this->gift_certificates_table}(id) 
+                ALTER TABLE {$this->transactions_table}
+                ADD CONSTRAINT fk_gift_certificate_transactions
+                FOREIGN KEY (gift_certificate_id)
+                REFERENCES {$this->gift_certificates_table}(id)
                 ON DELETE CASCADE
             ");
         }
