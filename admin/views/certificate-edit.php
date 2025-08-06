@@ -5,8 +5,10 @@ if (!defined('ABSPATH')) {
 ?>
 <div class="wrap">
     <h1><?php echo $is_edit ? esc_html__('Edit Gift Certificate', 'gift-certificates-fluentforms') : esc_html__('Add Gift Certificate', 'gift-certificates-fluentforms'); ?></h1>
-    <form method="post">
+    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
         <?php wp_nonce_field('gcff_save_certificate'); ?>
+        <input type="hidden" name="action" value="gcff_save_certificate">
+        <input type="hidden" name="certificate_id" value="<?php echo esc_attr($certificate->id ?? 0); ?>">
         <table class="form-table">
             <tr>
                 <th><label for="coupon_code"><?php _e('Coupon Code', 'gift-certificates-fluentforms'); ?></label></th>

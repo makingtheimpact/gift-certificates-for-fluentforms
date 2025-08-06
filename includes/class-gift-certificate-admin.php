@@ -23,6 +23,7 @@ class GiftCertificateAdmin {
         add_action('admin_init', array($this, 'init_settings'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
         add_action('wp_ajax_gift_certificate_admin_action', array($this, 'handle_admin_ajax'));
+        add_action('admin_post_gcff_save_certificate', array($this, 'handle_save_certificate'));
     }
     
     public function add_admin_menu() {
@@ -179,64 +180,73 @@ class GiftCertificateAdmin {
             $is_edit = (bool) $certificate;
         }
 
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            check_admin_referer('gcff_save_certificate');
-
-            if (!current_user_can('manage_options')) {
-                wp_die('Permission denied');
-            }
-
-            $data = array(
-                'coupon_code' => sanitize_text_field($_POST['coupon_code'] ?? ''),
-                'original_amount' => floatval($_POST['original_amount'] ?? 0),
-                'current_balance' => floatval($_POST['current_balance'] ?? 0),
-                'recipient_email' => sanitize_email($_POST['recipient_email'] ?? ''),
-                'recipient_name' => sanitize_text_field($_POST['recipient_name'] ?? ''),
-                'sender_name' => sanitize_text_field($_POST['sender_name'] ?? ''),
-                'message' => sanitize_textarea_field($_POST['message'] ?? ''),
-                'delivery_date' => sanitize_text_field($_POST['delivery_date'] ?? ''),
-                'design_id' => sanitize_text_field($_POST['design_id'] ?? 'default'),
-                'status' => sanitize_text_field($_POST['status'] ?? 'active')
-            );
-
-            $coupon_code = $data['coupon_code'];
-            $amount = $data['current_balance'];
-
-            if ($is_edit) {
-                $old_code = $certificate->coupon_code;
-                $this->database->update_gift_certificate($certificate_id, $data);
-
-                if ($old_code !== $coupon_code || $certificate->current_balance != $amount) {
-                    $this->update_fluent_forms_coupon($old_code, $coupon_code, $amount);
-                }
-            } else {
-                if (empty($coupon_code)) {
-                    $coupon_code = $this->generate_coupon_code();
-                    $data['coupon_code'] = $coupon_code;
-                } else {
-                    if ($this->database->get_gift_certificate_by_coupon_code($coupon_code)) {
-                        $coupon_code = $this->generate_coupon_code();
-                        $data['coupon_code'] = $coupon_code;
-                    }
-                }
-
-                $certificate_id = $this->database->create_gift_certificate($data);
-
-                if ($certificate_id) {
-                    $this->create_fluent_forms_coupon($coupon_code, $amount, $certificate_id);
-                    $email_handler = GiftCertificateEmail::get_instance();
-                    $email_handler->send_gift_certificate_email($certificate_id);
-                }
-            }
-
-            wp_redirect(admin_url('admin.php?page=gift-certificates-ff-list'));
-            exit;
-        }
-
         $designs_class = new GiftCertificateDesigns();
         $designs = $designs_class->get_designs();
 
         include GIFT_CERTIFICATES_FF_PLUGIN_DIR . 'admin/views/certificate-edit.php';
+    }
+
+    public function handle_save_certificate() {
+        if (!current_user_can('manage_options')) {
+            wp_die('Permission denied');
+        }
+
+        check_admin_referer('gcff_save_certificate');
+
+        $certificate_id = isset($_POST['certificate_id']) ? intval($_POST['certificate_id']) : 0;
+        $is_edit = false;
+        $certificate = null;
+
+        if ($certificate_id) {
+            $certificate = $this->database->get_gift_certificate($certificate_id);
+            $is_edit = (bool) $certificate;
+        }
+
+        $data = array(
+            'coupon_code' => sanitize_text_field($_POST['coupon_code'] ?? ''),
+            'original_amount' => floatval($_POST['original_amount'] ?? 0),
+            'current_balance' => floatval($_POST['current_balance'] ?? 0),
+            'recipient_email' => sanitize_email($_POST['recipient_email'] ?? ''),
+            'recipient_name' => sanitize_text_field($_POST['recipient_name'] ?? ''),
+            'sender_name' => sanitize_text_field($_POST['sender_name'] ?? ''),
+            'message' => sanitize_textarea_field($_POST['message'] ?? ''),
+            'delivery_date' => sanitize_text_field($_POST['delivery_date'] ?? ''),
+            'design_id' => sanitize_text_field($_POST['design_id'] ?? 'default'),
+            'status' => sanitize_text_field($_POST['status'] ?? 'active')
+        );
+
+        $coupon_code = $data['coupon_code'];
+        $amount = $data['current_balance'];
+
+        if ($is_edit) {
+            $old_code = $certificate->coupon_code;
+            $this->database->update_gift_certificate($certificate_id, $data);
+
+            if ($old_code !== $coupon_code || $certificate->current_balance != $amount) {
+                $this->update_fluent_forms_coupon($old_code, $coupon_code, $amount);
+            }
+        } else {
+            if (empty($coupon_code)) {
+                $coupon_code = $this->generate_coupon_code();
+                $data['coupon_code'] = $coupon_code;
+            } else {
+                if ($this->database->get_gift_certificate_by_coupon_code($coupon_code)) {
+                    $coupon_code = $this->generate_coupon_code();
+                    $data['coupon_code'] = $coupon_code;
+                }
+            }
+
+            $certificate_id = $this->database->create_gift_certificate($data);
+
+            if ($certificate_id) {
+                $this->create_fluent_forms_coupon($coupon_code, $amount, $certificate_id);
+                $email_handler = GiftCertificateEmail::get_instance();
+                $email_handler->send_gift_certificate_email($certificate_id);
+            }
+        }
+
+        wp_redirect(admin_url('admin.php?page=gift-certificates-ff-list'));
+        exit;
     }
     
     public function settings_page() {

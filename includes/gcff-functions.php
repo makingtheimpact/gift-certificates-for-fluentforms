@@ -43,3 +43,33 @@ if (!function_exists('gcff_mask_coupon_code')) {
     }
 }
 
+// Provide simple bcmath polyfills if the extension isn't available
+if (!function_exists('bcadd')) {
+    function bcadd($left_operand, $right_operand, $scale = 0) {
+        $result = (float) $left_operand + (float) $right_operand;
+        return number_format($result, (int) $scale, '.', '');
+    }
+}
+
+if (!function_exists('bcsub')) {
+    function bcsub($left_operand, $right_operand, $scale = 0) {
+        $result = (float) $left_operand - (float) $right_operand;
+        return number_format($result, (int) $scale, '.', '');
+    }
+}
+
+if (!function_exists('bccomp')) {
+    function bccomp($left_operand, $right_operand, $scale = 0) {
+        $left  = round((float) $left_operand, (int) $scale);
+        $right = round((float) $right_operand, (int) $scale);
+
+        if ($left < $right) {
+            return -1;
+        }
+        if ($left > $right) {
+            return 1;
+        }
+        return 0;
+    }
+}
+
