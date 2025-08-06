@@ -20,8 +20,9 @@ class GiftCertificateCoupon {
         // Hook into Fluent Forms Pro coupon validation
         add_filter('fluentformpro_coupon_validation', array($this, 'validate_gift_certificate_coupon'), 10, 3);
 
-        // Track coupon usage when Fluent Forms registers a coupon as used
-        add_action('fluentformpro_coupon_used', array($this, 'track_coupon_usage'), 10, 3);
+        // Register coupon usage hook once all plugins are loaded so we can
+        // detect which Fluent Forms coupon hook is available.
+        add_action('plugins_loaded', array($this, 'register_coupon_usage_hooks'));
 
         // Listen for gift certificates reaching zero balance to deactivate coupons
         add_action('gcff_gift_certificate_balance_zero', array($this, 'deactivate_fluent_forms_coupon'));
@@ -63,6 +64,21 @@ class GiftCertificateCoupon {
             : $order_total;
 
         return true;
+    }
+
+    /**
+     * Register coupon usage hooks based on available Fluent Forms actions.
+     * Falls back to the free version hook and logs a warning when neither is
+     * present so site owners know to upgrade or enable the coupon module.
+     */
+    public function register_coupon_usage_hooks() {
+        if (has_action('fluentformpro_coupon_used')) {
+            add_action('fluentformpro_coupon_used', array($this, 'track_coupon_usage'), 10, 3);
+        } elseif (has_action('fluentform_coupon_used')) {
+            add_action('fluentform_coupon_used', array($this, 'track_coupon_usage'), 10, 3);
+        } else {
+            gcff_log('Gift Certificate: Fluent Forms coupon usage hooks not detected. Update Fluent Forms Pro to version 5.0 or later or ensure the coupon module is active.');
+        }
     }
     
     

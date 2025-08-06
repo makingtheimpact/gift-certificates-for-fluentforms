@@ -23,8 +23,9 @@ A comprehensive WordPress plugin that extends Fluent Forms Pro to sell and redee
 
 - WordPress 5.0 or higher
 - PHP 7.4 or higher
-- Fluent Forms Pro (for coupon functionality)
-- Fluent Forms (free version for form creation)
+ - Fluent Forms Pro 5.0 or higher (for coupon functionality and coupon usage hooks)
+ - Fluent Forms (free version for form creation)
+ - If coupon usage hooks are missing, the plugin logs a warning—upgrade Fluent Forms or enable its coupon module
 
 ## Installation
 

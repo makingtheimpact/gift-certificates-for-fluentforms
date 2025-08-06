@@ -20,6 +20,9 @@ Gift Certificates for Fluent Forms is a comprehensive solution for managing gift
 * Admin interface for managing designs and transactions
 * Automatic coupon deactivation when a certificate balance reaches zero
 
+Requires Fluent Forms Pro 5.0 or higher. If coupon usage hooks (`fluentformpro_coupon_used` or `fluentform_coupon_used`) are missing,
+the plugin logs a warning—update Fluent Forms or enable its coupon module.
+
 == Installation ==
 1. Upload the plugin files to the `/wp-content/plugins/gift-certificates-for-fluentforms/` directory or install through the WordPress admin.
 2. Activate the plugin through the "Plugins" menu in WordPress.
@@ -30,7 +33,8 @@ Balance endpoints expose only the gift certificate's current balance and status.
 
 == Frequently Asked Questions ==
 = Does this plugin require Fluent Forms Pro? =
-Yes. Fluent Forms Pro is needed for coupon functionality and webhook support.
+Yes. Fluent Forms Pro version 5.0 or higher is needed for coupon functionality and webhook support. If you see a warning about
+missing coupon hooks, upgrade Fluent Forms or enable its coupon module.
 
 = Where can I find documentation? =
 Full setup instructions and API details are available in the plugin's GitHub repository.
