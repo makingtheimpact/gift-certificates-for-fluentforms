@@ -28,6 +28,66 @@ the plugin logs a warning—update Fluent Forms or enable its coupon module.
 2. Activate the plugin through the "Plugins" menu in WordPress.
 3. Go to "Gift Certificates → Settings" to configure form mappings, allowed redemption forms, and email options.
 
+== Redemption Form Setup ==
+To apply gift certificate discounts in a Fluent Forms redemption form:
+
+1. Add a hidden field to the form named `gc_discount_applied` (or the name configured in **Gift Certificates → Settings**).
+2. In the form's **Custom JS** settings, add the script below so the hidden field captures the discount amount:
+
+```
+var discountInput = document.querySelector('input[name="gc_discount_applied"]');
+if (!discountInput) return;
+
+var form = discountInput.closest('form');
+if (!form) return;
+
+function updateDiscountField() {
+    var table = form.querySelector('.ffp_table.input_items_table');
+    if (!table) return;
+
+    var discount = 0;
+    var rows = table.querySelectorAll('tfoot tr');
+
+    for (var i = 0; i < rows.length; i++) {
+        var th = rows[i].querySelector('th');
+        if (!th) continue;
+
+        var label = th.textContent || '';
+        if (label.trim().toLowerCase().indexOf('discount') === 0) {
+            var amountCell = rows[i].querySelector('th:last-child');
+            if (amountCell) {
+                discount = parseFloat(amountCell.textContent.replace(/[^0-9.]/g, '')) || 0;
+            }
+            break;
+        }
+    }
+
+    discountInput.value = discount.toFixed(2);
+}
+
+var debounceTimeout;
+function debouncedUpdate() {
+    clearTimeout(debounceTimeout);
+    debounceTimeout = setTimeout(updateDiscountField, 100);
+}
+
+if (window.MutationObserver) {
+    var observer = new MutationObserver(debouncedUpdate);
+    observer.observe(form, {
+        childList: true,
+        subtree: true,
+    });
+}
+
+form.addEventListener('input', debouncedUpdate);
+form.addEventListener('change', debouncedUpdate);
+form.addEventListener('submit', updateDiscountField);
+
+setTimeout(updateDiscountField, 300);
+```
+
+Update the field name in the script if you change it in the plugin settings.
+
 == Privacy ==
 Balance endpoints expose only the gift certificate's current balance and status. Recipient information is never returned in API responses to protect personal data.
 

@@ -80,6 +80,67 @@ For the design selection field:
 
 Add your preferred payment gateway (Stripe, PayPal, etc.) to the Fluent Forms form to handle purchases.
 
+## Redemption Form Setup
+
+To redeem gift certificates in a Fluent Forms form:
+
+1. **Add a hidden field** to the form. By default, name it `gc_discount_applied`.
+2. **Include the following script** in the form's *Custom JS* settings so the hidden field records the applied discount:
+
+```javascript
+var discountInput = document.querySelector('input[name="gc_discount_applied"]');
+if (!discountInput) return;
+
+var form = discountInput.closest('form');
+if (!form) return;
+
+function updateDiscountField() {
+    var table = form.querySelector('.ffp_table.input_items_table');
+    if (!table) return;
+
+    var discount = 0;
+    var rows = table.querySelectorAll('tfoot tr');
+
+    for (var i = 0; i < rows.length; i++) {
+        var th = rows[i].querySelector('th');
+        if (!th) continue;
+
+        var label = th.textContent || '';
+        if (label.trim().toLowerCase().indexOf('discount') === 0) {
+            var amountCell = rows[i].querySelector('th:last-child');
+            if (amountCell) {
+                discount = parseFloat(amountCell.textContent.replace(/[^0-9.]/g, '')) || 0;
+            }
+            break;
+        }
+    }
+
+    discountInput.value = discount.toFixed(2);
+}
+
+var debounceTimeout;
+function debouncedUpdate() {
+    clearTimeout(debounceTimeout);
+    debounceTimeout = setTimeout(updateDiscountField, 100);
+}
+
+if (window.MutationObserver) {
+    var observer = new MutationObserver(debouncedUpdate);
+    observer.observe(form, {
+        childList: true,
+        subtree: true,
+    });
+}
+
+form.addEventListener('input', debouncedUpdate);
+form.addEventListener('change', debouncedUpdate);
+form.addEventListener('submit', updateDiscountField);
+
+setTimeout(updateDiscountField, 300);
+```
+
+You can change the hidden field name in **Gift Certificates → Settings** if you prefer a less obvious name. Update the script and form field accordingly.
+
 ## How It Works
 
 ### Purchase Process

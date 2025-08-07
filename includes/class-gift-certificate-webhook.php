@@ -313,16 +313,12 @@ class GiftCertificateWebhook {
             
             gcff_log("Gift Certificate Webhook: Found gift certificate - ID: {$gift_certificate->id}, Status: {$gift_certificate->status}, Balance: {$gift_certificate->current_balance}");
 
-            // First try to get discount from the stored submission meta
-            $discount_amount = isset($form_data['gc_discount_applied']) ? floatval($form_data['gc_discount_applied']) : null;
+            // First try to get discount from the configured hidden field
+            $discount_field  = $this->settings['discount_field_name'] ?? 'gc_discount_applied';
+            $discount_amount = isset($form_data[$discount_field]) ? floatval($form_data[$discount_field]) : null;
 
             if ($discount_amount === null || $discount_amount <= 0) {
-                gcff_log("Gift Certificate Webhook: ERROR - Hidden field gc_discount_applied not found or invalid.");
-                return;
-            }
-
-            if ($discount_amount === null) {
-                gcff_log("Gift Certificate Webhook: ERROR - Discount amount not found in submission or payment summary. Aborting to prevent incorrect deduction.");
+                gcff_log("Gift Certificate Webhook: ERROR - Hidden field {$discount_field} not found or invalid.");
                 return;
             }
 

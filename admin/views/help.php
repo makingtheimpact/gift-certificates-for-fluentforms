@@ -49,8 +49,65 @@ if (!defined('ABSPATH')) {
                 <li><?php _e('Configure email settings and template', 'gift-certificates-fluentforms'); ?></li>
                 <li><?php _e('Save settings', 'gift-certificates-fluentforms'); ?></li>
             </ol>
+
+            <h3><?php _e('Step 3: Prepare Redemption Forms', 'gift-certificates-fluentforms'); ?></h3>
+            <ol>
+                <li><?php _e('Add a hidden field to each redemption form. By default, name it <code>gc_discount_applied</code>.', 'gift-certificates-fluentforms'); ?></li>
+                <li><?php _e('Add the following script to the form\'s Custom JS settings so the hidden field records the discount amount.', 'gift-certificates-fluentforms'); ?></li>
+                <li><?php _e('If you change the field name in the plugin settings, update it in the form and script.', 'gift-certificates-fluentforms'); ?></li>
+            </ol>
+
+<pre><code>var discountInput = document.querySelector('input[name="gc_discount_applied"]');
+if (!discountInput) return;
+
+var form = discountInput.closest('form');
+if (!form) return;
+
+function updateDiscountField() {
+    var table = form.querySelector('.ffp_table.input_items_table');
+    if (!table) return;
+
+    var discount = 0;
+    var rows = table.querySelectorAll('tfoot tr');
+
+    for (var i = 0; i &lt; rows.length; i++) {
+        var th = rows[i].querySelector('th');
+        if (!th) continue;
+
+        var label = th.textContent || '';
+        if (label.trim().toLowerCase().indexOf('discount') === 0) {
+            var amountCell = rows[i].querySelector('th:last-child');
+            if (amountCell) {
+                discount = parseFloat(amountCell.textContent.replace(/[^0-9.]/g, '')) || 0;
+            }
+            break;
+        }
+    }
+
+    discountInput.value = discount.toFixed(2);
+}
+
+var debounceTimeout;
+function debouncedUpdate() {
+    clearTimeout(debounceTimeout);
+    debounceTimeout = setTimeout(updateDiscountField, 100);
+}
+
+if (window.MutationObserver) {
+    var observer = new MutationObserver(debouncedUpdate);
+    observer.observe(form, {
+        childList: true,
+        subtree: true,
+    });
+}
+
+form.addEventListener('input', debouncedUpdate);
+form.addEventListener('change', debouncedUpdate);
+form.addEventListener('submit', updateDiscountField);
+
+setTimeout(updateDiscountField, 300);</code></pre>
         </div>
-        
+
         <div class="help-section" id="how-it-works">
             <h2><?php _e('How It Works', 'gift-certificates-fluentforms'); ?></h2>
             
