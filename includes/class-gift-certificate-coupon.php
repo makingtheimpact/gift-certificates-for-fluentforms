@@ -94,7 +94,7 @@ class GiftCertificateCoupon {
 
         gcff_log('Tracking gift certificate coupon: ' . $coupon->code);
         gcff_log('Gift certificate form data: ' . json_encode($form_data));
-        gcff_log('Gift certificate coupon amount: ' . (isset($coupon->amount) ? $coupon->amount : '')); 
+        gcff_log('Gift certificate coupon amount: ' . (isset($coupon->amount) ? $coupon->amount : ''));
 
         // Look up the related gift certificate
         $gift_certificate = $this->database->get_gift_certificate_by_coupon_code($coupon->code);
@@ -103,16 +103,21 @@ class GiftCertificateCoupon {
             return;
         }
 
-        // Determine the amount used. Prefer the coupon's amount and fall back to recalculating
-        $amount_used = '0';
-        if (isset($coupon->amount)) {
-            $amount_used = $this->sanitize_amount($coupon->amount);
-        }
+        // Determine the amount used. Prefer payment summary discount, then coupon amount
+        $amount_used = $this->get_payment_summary_discount($form_data);
+        if ($amount_used !== null) {
+            gcff_log('Gift certificate discount from payment summary: ' . $amount_used);
+        } else {
+            $amount_used = '0';
+            if (isset($coupon->amount)) {
+                $amount_used = $this->sanitize_amount($coupon->amount);
+            }
 
-        if (bccomp($amount_used, '0', $this->scale) !== 1) {
-            $amount_used = $this->calculate_order_total($form_data);
+            if (bccomp($amount_used, '0', $this->scale) !== 1) {
+                $amount_used = $this->calculate_order_total($form_data);
+            }
+            gcff_log('Gift certificate amount used after recalculation: ' . $amount_used);
         }
-        gcff_log('Gift certificate amount used after recalculation: ' . $amount_used);
 
         // Update balance in the database and retrieve the actual amount used
         $update_result = $this->database->update_gift_certificate_balance($gift_certificate->id, $amount_used);
@@ -306,6 +311,22 @@ class GiftCertificateCoupon {
         }
 
         return $total;
+    }
+
+    /**
+     * Extract discount amount from a payment summary field
+     */
+    private function get_payment_summary_discount($form_data) {
+        foreach ($form_data as $key => $value) {
+            if (is_array($value) && isset($value['discount']) && isset($value['items'])) {
+                gcff_log("Gift certificate: Payment summary field '{$key}': " . json_encode($value));
+                $discount = $this->sanitize_amount($value['discount']);
+                if (bccomp($discount, '0', $this->scale) === 1) {
+                    return $discount;
+                }
+            }
+        }
+        return null;
     }
 
     private function sanitize_amount($amount) {

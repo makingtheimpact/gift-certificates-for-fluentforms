@@ -313,21 +313,31 @@ class GiftCertificateWebhook {
             
             gcff_log("Gift Certificate Webhook: Found gift certificate - ID: {$gift_certificate->id}, Status: {$gift_certificate->status}, Balance: {$gift_certificate->current_balance}");
 
-            // Calculate the order total to determine how much to deduct
-            $order_total = $this->sanitize_amount($this->calculate_order_total($form_data));
+            // Check for a payment summary discount first
+            $discount_amount = $this->get_payment_summary_discount($form_data);
 
-            if (bccomp($order_total, '0', $this->scale) !== 1) {
-                gcff_log("Gift Certificate Webhook: Invalid order total: {$order_total}");
-                return;
+            if ($discount_amount !== null) {
+                gcff_log("Gift Certificate Webhook: Using payment summary discount: {$discount_amount}");
+                $amount_to_deduct = $discount_amount;
+            } else {
+                // Fall back to calculating the order total to determine how much to deduct
+                $order_total = $this->sanitize_amount($this->calculate_order_total($form_data));
+
+                if (bccomp($order_total, '0', $this->scale) !== 1) {
+                    gcff_log("Gift Certificate Webhook: Invalid order total: {$order_total}");
+                    return;
+                }
+
+                $amount_to_deduct = $order_total;
             }
 
-            // Determine the amount to deduct (either the full order total or the remaining balance)
-            $current_balance   = $this->sanitize_amount($gift_certificate->current_balance);
-            $difference        = bcsub($order_total, $current_balance, $this->scale);
-            $amount_to_deduct  = bccomp($difference, '0', $this->scale) === 1 ? $current_balance : $order_total;
+            // Determine the amount to deduct (either the calculated amount or the remaining balance)
+            $current_balance  = $this->sanitize_amount($gift_certificate->current_balance);
+            $difference       = bcsub($amount_to_deduct, $current_balance, $this->scale);
+            $amount_to_deduct = bccomp($difference, '0', $this->scale) === 1 ? $current_balance : $amount_to_deduct;
 
             if (bccomp($amount_to_deduct, '0', $this->scale) !== 1) {
-                gcff_log("Gift Certificate Webhook: No amount to deduct - Balance: {$gift_certificate->current_balance}, Order Total: {$order_total}");
+                gcff_log("Gift Certificate Webhook: No amount to deduct - Balance: {$gift_certificate->current_balance}");
                 return;
             }
 
@@ -474,6 +484,22 @@ class GiftCertificateWebhook {
         }
 
         return $total;
+    }
+
+    /**
+     * Extract discount amount from a payment summary field
+     */
+    private function get_payment_summary_discount($form_data) {
+        foreach ($form_data as $key => $value) {
+            if (is_array($value) && isset($value['discount']) && isset($value['items'])) {
+                gcff_log("Gift Certificate Webhook: Payment summary field '{$key}': " . json_encode($value));
+                $discount = $this->sanitize_amount($value['discount']);
+                if (bccomp($discount, '0', $this->scale) === 1) {
+                    return $discount;
+                }
+            }
+        }
+        return null;
     }
 
     private function sanitize_amount($amount) {
