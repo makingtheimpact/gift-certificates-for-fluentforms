@@ -367,8 +367,13 @@ class GiftCertificateWebhook {
         $subtotal = 0;
         $total_due = 0;
 
-        // Look for a subtotal/price field first
-        $subtotal_fields = array('subtotal', 'payment_input', 'amount', 'price', 'order_total', 'cart_total');
+        // Look for a configured subtotal field first, then fall back to common names
+        $subtotal_fields = array();
+        if (!empty($this->settings['order_total_field_name'])) {
+            $subtotal_fields = array_map('trim', explode(',', $this->settings['order_total_field_name']));
+        }
+        $subtotal_fields = array_merge($subtotal_fields, array('subtotal', 'payment_input', 'amount', 'price', 'order_total', 'cart_total'));
+
         foreach ($subtotal_fields as $field) {
             if (isset($form_data[$field])) {
                 $value = floatval($form_data[$field]);

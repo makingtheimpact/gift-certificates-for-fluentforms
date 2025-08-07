@@ -80,6 +80,11 @@ For the design selection field:
 
 Add your preferred payment gateway (Stripe, PayPal, etc.) to the Fluent Forms form to handle purchases.
 
+### 4. Optional: Track Order Totals for Redemptions
+
+1. Add a **Calculation** or **Hidden** field to your redemption form that sums all payment items (e.g., `cart_total`).
+2. In **Gift Certificates → Settings → Order Total Field**, include this field name so the plugin reads the pre-calculated subtotal when redeeming a gift certificate.
+
 ## How It Works
 
 ### Purchase Process
