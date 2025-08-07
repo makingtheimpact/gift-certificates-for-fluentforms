@@ -151,6 +151,10 @@ class GiftCertificateAPI {
         if ($status) {
             $args['status'] = $status;
         }
+
+        if ($search) {
+            $args['search'] = $search;
+        }
         
         $certificates = $this->database->get_gift_certificates($args);
         $total = $this->database->get_gift_certificates_count($args);
