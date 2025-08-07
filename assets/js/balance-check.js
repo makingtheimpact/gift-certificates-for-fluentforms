@@ -88,10 +88,10 @@
         
         // Make API request
         $.ajax({
-            url: giftCertificateAPI.restUrl + '/balance',
+            url: giftCertificateAPI.restUrl + 'balance',
             method: 'POST',
+            contentType: 'application/json',
             headers: {
-                'Content-Type': 'application/json',
                 'X-WP-Nonce': giftCertificateAPI.nonce
             },
             data: JSON.stringify({ code: code }),
@@ -209,10 +209,10 @@ jQuery(document).ready(function($) {
                 resultDiv.html('<div class="loading">Checking balance...</div>');
                 
                 $.ajax({
-                    url: giftCertificateAPI.restUrl + '/balance',
+                    url: giftCertificateAPI.restUrl + 'balance',
                     method: 'POST',
+                    contentType: 'application/json',
                     headers: {
-                        'Content-Type': 'application/json',
                         'X-WP-Nonce': giftCertificateAPI.nonce
                     },
                     data: JSON.stringify({ code: code }),
