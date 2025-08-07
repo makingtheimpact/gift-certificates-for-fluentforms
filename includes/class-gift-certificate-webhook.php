@@ -416,9 +416,8 @@ class GiftCertificateWebhook {
                     continue;
                 }
 
-                foreach ($matches[0] as $match) {
-                    $value_total = bcadd($value_total, $this->sanitize_amount($match), $this->scale);
-                }
+                $last_match  = end($matches[0]);
+                $value_total = bcadd($value_total, $this->sanitize_amount($last_match), $this->scale);
             }
 
             if (bccomp($value_total, '0', $this->scale) !== 1) {
