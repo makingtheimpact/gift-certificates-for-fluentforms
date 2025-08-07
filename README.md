@@ -368,6 +368,10 @@ For support and documentation:
 
 This plugin is licensed under the GPL v2 or later.
 
+## Development
+
+For details on running the lightweight PHP test scripts, see [tests/README.md](tests/README.md).
+
 ## Contributing
 
 Contributions are welcome! Please ensure your code follows WordPress coding standards and includes proper documentation. 
