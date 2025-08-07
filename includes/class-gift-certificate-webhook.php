@@ -11,13 +11,15 @@ if (!defined('ABSPATH')) {
 }
 
 class GiftCertificateWebhook {
-    
+
     private $database;
     private $settings;
-    
+    private $scale = 4;
+
     public function __construct() {
         $this->database = new GiftCertificateDatabase();
         $this->settings = get_option('gift_certificates_ff_settings', array());
+        $this->scale    = (int) apply_filters('gcff_decimal_scale', $this->scale);
         
         // Try multiple hooks to ensure compatibility
         add_action('fluentform_submission_inserted', array($this, 'handle_form_submission'), 10, 3);
@@ -305,51 +307,48 @@ class GiftCertificateWebhook {
             }
             
             gcff_log("Gift Certificate Webhook: Found gift certificate - ID: {$gift_certificate->id}, Status: {$gift_certificate->status}, Balance: {$gift_certificate->current_balance}");
-            
+
             // Calculate the order total to determine how much to deduct
-            $order_total = $this->calculate_order_total($form_data);
-            
-            if ($order_total <= 0) {
+            $order_total = $this->sanitize_amount($this->calculate_order_total($form_data));
+
+            if (bccomp($order_total, '0', $this->scale) !== 1) {
                 gcff_log("Gift Certificate Webhook: Invalid order total: {$order_total}");
                 return;
             }
-            
+
             // Determine the amount to deduct (either the full order total or the remaining balance)
-            $amount_to_deduct = min($order_total, $gift_certificate->current_balance);
-            
-            if ($amount_to_deduct <= 0) {
+            $current_balance   = $this->sanitize_amount($gift_certificate->current_balance);
+            $difference        = bcsub($order_total, $current_balance, $this->scale);
+            $amount_to_deduct  = bccomp($difference, '0', $this->scale) === 1 ? $current_balance : $order_total;
+
+            if (bccomp($amount_to_deduct, '0', $this->scale) !== 1) {
                 gcff_log("Gift Certificate Webhook: No amount to deduct - Balance: {$gift_certificate->current_balance}, Order Total: {$order_total}");
                 return;
             }
-            
-            // Update the gift certificate balance
-            $new_balance = $gift_certificate->current_balance - $amount_to_deduct;
-            $update_data = array('current_balance' => $new_balance);
-            
-            // If balance is now 0, mark as used
-            if ($new_balance <= 0) {
-                $update_data['status'] = 'used';
-            }
-            
-            $updated = $this->database->update_gift_certificate($gift_certificate->id, $update_data);
-            
-            if (!$updated) {
+
+            // Update the gift certificate balance and get the new balance and actual amount used
+            $update_result = $this->database->update_gift_certificate_balance($gift_certificate->id, $amount_to_deduct);
+
+            if ($update_result === false || empty($update_result['rows_affected'])) {
                 gcff_log("Gift Certificate Webhook: Failed to update gift certificate balance - ID: {$gift_certificate->id}");
                 return;
             }
-            
+
+            $new_balance = $update_result['new_balance'];
+            $amount_used = $update_result['amount_used'];
+
             // Record the transaction
             $this->database->record_transaction(
                 $gift_certificate->id,
-                $amount_to_deduct,
+                $amount_used,
                 null, // order_id
                 $entry_id
             );
-            
+
             // Update the Fluent Forms coupon amount to reflect the new balance
             $this->update_fluent_forms_coupon_amount($coupon_code, $new_balance);
-            
-            gcff_log("Gift Certificate Webhook: Coupon redemption successful - Code: " . gcff_mask_coupon_code($coupon_code) . ", Amount deducted: {$amount_to_deduct}, New balance: {$new_balance}");
+
+            gcff_log("Gift Certificate Webhook: Coupon redemption successful - Code: " . gcff_mask_coupon_code($coupon_code) . ", Amount deducted: {$amount_used}, New balance: {$new_balance}");
             
         } catch (Exception $e) {
             gcff_log("Gift Certificate Webhook: Single coupon redemption failed - Code: " . gcff_mask_coupon_code($coupon_code) . ", Error: " . $e->getMessage());
@@ -417,6 +416,14 @@ class GiftCertificateWebhook {
 
         gcff_log("Gift Certificate Webhook: Calculated order total: {$amount}");
         return $amount;
+    }
+
+    private function sanitize_amount($amount) {
+        $amount = preg_replace('/[^0-9.]/', '', (string) $amount);
+        if ($amount === '') {
+            $amount = '0';
+        }
+        return bcadd($amount, '0', $this->scale);
     }
     
     /**
