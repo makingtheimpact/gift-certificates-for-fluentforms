@@ -103,20 +103,26 @@ class GiftCertificateCoupon {
             return;
         }
 
-        // Determine the amount used. Prefer payment summary discount, then coupon amount
-        $amount_used = $this->get_payment_summary_discount($form_data);
+        // Determine the amount used. Prefer discount recorded in submission meta,
+        // then fall back to any payment summary field or coupon/order totals
+        $amount_used = $this->get_submission_discount($submission_id);
         if ($amount_used !== null) {
-            gcff_log('Gift certificate discount from payment summary: ' . $amount_used);
+            gcff_log('Gift certificate discount from submission: ' . $amount_used);
         } else {
-            $amount_used = '0';
-            if (isset($coupon->amount)) {
-                $amount_used = $this->sanitize_amount($coupon->amount);
-            }
+            $amount_used = $this->get_payment_summary_discount($form_data);
+            if ($amount_used !== null) {
+                gcff_log('Gift certificate discount from payment summary: ' . $amount_used);
+            } else {
+                $amount_used = '0';
+                if (isset($coupon->amount)) {
+                    $amount_used = $this->sanitize_amount($coupon->amount);
+                }
 
-            if (bccomp($amount_used, '0', $this->scale) !== 1) {
-                $amount_used = $this->calculate_order_total($form_data);
+                if (bccomp($amount_used, '0', $this->scale) !== 1) {
+                    $amount_used = $this->calculate_order_total($form_data);
+                }
+                gcff_log('Gift certificate amount used after recalculation: ' . $amount_used);
             }
-            gcff_log('Gift certificate amount used after recalculation: ' . $amount_used);
         }
 
         // Update balance in the database and retrieve the actual amount used
@@ -326,6 +332,37 @@ class GiftCertificateCoupon {
                 }
             }
         }
+        return null;
+    }
+
+    /**
+     * Retrieve discount amount from the stored submission payment summary meta
+     */
+    private function get_submission_discount($submission_id) {
+        try {
+            $submission = \FluentForm\App\Models\Submission::find($submission_id);
+            if (!$submission) {
+                return null;
+            }
+
+            $payment_meta = $submission->payment_summary;
+            if (is_string($payment_meta)) {
+                $payment_meta = json_decode($payment_meta, true);
+            }
+
+            if (!is_array($payment_meta)) {
+                return null;
+            }
+
+            $discount = $this->sanitize_amount($payment_meta['discount'] ?? 0);
+
+            if (bccomp($discount, '0', $this->scale) === 1) {
+                return $discount;
+            }
+        } catch (\Throwable $e) {
+            gcff_log('Gift certificate: Error fetching submission discount - ' . $e->getMessage());
+        }
+
         return null;
     }
 

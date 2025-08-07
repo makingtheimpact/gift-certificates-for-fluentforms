@@ -313,8 +313,13 @@ class GiftCertificateWebhook {
             
             gcff_log("Gift Certificate Webhook: Found gift certificate - ID: {$gift_certificate->id}, Status: {$gift_certificate->status}, Balance: {$gift_certificate->current_balance}");
 
-            // Check for a payment summary discount first
-            $discount_amount = $this->get_payment_summary_discount($form_data);
+            // First try to get discount from the stored submission meta
+            $discount_amount = $this->get_submission_discount($entry_id);
+
+            if ($discount_amount === null) {
+                // Fall back to checking the form data for a payment summary field
+                $discount_amount = $this->get_payment_summary_discount($form_data);
+            }
 
             if ($discount_amount !== null) {
                 gcff_log("Gift Certificate Webhook: Using payment summary discount: {$discount_amount}");
@@ -499,6 +504,37 @@ class GiftCertificateWebhook {
                 }
             }
         }
+        return null;
+    }
+
+    /**
+     * Retrieve discount amount from the stored submission payment summary meta
+     */
+    private function get_submission_discount($entry_id) {
+        try {
+            $submission = \FluentForm\App\Models\Submission::find($entry_id);
+            if (!$submission) {
+                return null;
+            }
+
+            $payment_meta = $submission->payment_summary;
+            if (is_string($payment_meta)) {
+                $payment_meta = json_decode($payment_meta, true);
+            }
+
+            if (!is_array($payment_meta)) {
+                return null;
+            }
+
+            $discount = $this->sanitize_amount($payment_meta['discount'] ?? 0);
+
+            if (bccomp($discount, '0', $this->scale) === 1) {
+                return $discount;
+            }
+        } catch (\Throwable $e) {
+            gcff_log('Gift Certificate Webhook: Error fetching submission discount - ' . $e->getMessage());
+        }
+
         return null;
     }
 
