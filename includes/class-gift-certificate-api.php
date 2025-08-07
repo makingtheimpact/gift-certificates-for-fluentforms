@@ -7,6 +7,7 @@ namespace GiftCertificatesFluentForms;
 use WP_Error;
 use WP_REST_Response;
 use WP_REST_Server;
+use function rest_get_ip_address;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -278,7 +279,7 @@ class GiftCertificateAPI {
      * @return true|WP_Error
      */
     private function check_rate_limit($request) {
-        $ip = rest_get_ip_address();
+        $ip = function_exists('rest_get_ip_address') ? rest_get_ip_address() : '';
         if ( empty( $ip ) && ! empty( $_SERVER['REMOTE_ADDR'] ) ) {
             $ip = $_SERVER['REMOTE_ADDR'];
         }
