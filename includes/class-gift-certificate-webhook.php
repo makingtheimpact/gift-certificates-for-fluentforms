@@ -277,20 +277,30 @@ class GiftCertificateWebhook {
             // Get the gift certificate
             gcff_log("Gift Certificate Webhook: Looking up gift certificate for coupon code: " . gcff_mask_coupon_code($coupon_code));
             $gift_certificate = $this->database->get_active_gift_certificate_by_coupon_code($coupon_code);
-            
+
             if (!$gift_certificate) {
                 gcff_log("Gift Certificate Webhook: Active gift certificate not found for coupon code: " . gcff_mask_coupon_code($coupon_code));
-                
-                // Let's also check if there are any gift certificates in the database
+
+                // Diagnostic check: log sample certificates from the database if available
                 global $wpdb;
-                $table_name = $wpdb->prefix . 'gift_certificates_ff';
-                $all_certificates = $wpdb->get_results("SELECT coupon_code, status FROM {$table_name} LIMIT 5");
+                $table_name = $wpdb->prefix . 'gift_certificates';
                 $sample = array();
-                foreach ($all_certificates as $cert) {
-                    $sample[] = gcff_mask_coupon_code($cert->coupon_code) . ' (' . $cert->status . ')';
+
+                if ($this->table_exists('gift_certificates')) {
+                    $all_certificates = $wpdb->get_results("SELECT coupon_code, status FROM {$table_name} LIMIT 5");
+                    if (!empty($all_certificates)) {
+                        foreach ($all_certificates as $cert) {
+                            $sample[] = gcff_mask_coupon_code($cert->coupon_code) . ' (' . $cert->status . ')';
+                        }
+                    }
                 }
-                gcff_log("Gift Certificate Webhook: Sample certificates in database: " . implode(', ', $sample));
-                
+
+                if (!empty($sample)) {
+                    gcff_log("Gift Certificate Webhook: Sample certificates in database: " . implode(', ', $sample));
+                } else {
+                    gcff_log("Gift Certificate Webhook: No gift certificates found in database");
+                }
+
                 return;
             }
             
