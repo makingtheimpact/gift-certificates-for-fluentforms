@@ -58,8 +58,8 @@ class GiftCertificateWebhook {
     
     public function handle_ajax_webhook() {
         // Verify nonce for security
-        if (!wp_verify_nonce($_POST['nonce'], 'gift_certificate_webhook')) {
-            wp_die('Security check failed');
+        if (!isset($_POST['nonce']) || !check_ajax_referer('gift_certificate_webhook', 'nonce', false)) {
+            wp_send_json_error('Security check failed', 403);
         }
         
         $entry_id = intval($_POST['entry_id']);

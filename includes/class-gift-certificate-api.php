@@ -334,8 +334,8 @@ class GiftCertificateAPI {
     // AJAX handlers for backward compatibility
     public function handle_ajax_balance_check() {
         // Verify nonce
-        if (!wp_verify_nonce($_POST['nonce'], 'gift_certificate_balance_check')) {
-            wp_die('Security check failed');
+        if (!isset($_POST['nonce']) || !check_ajax_referer('gift_certificate_balance_check', 'nonce', false)) {
+            wp_send_json_error('Security check failed', 403);
         }
         
         $code = sanitize_text_field($_POST['code']);
