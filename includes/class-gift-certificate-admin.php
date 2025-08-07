@@ -498,8 +498,14 @@ class GiftCertificateAdmin {
     }
     
     private function update_certificate_status($certificate_id, $status) {
+        $allowed_statuses = array('active', 'expired', 'pending_delivery', 'delivered', 'used');
+
+        if (!in_array($status, $allowed_statuses, true)) {
+            wp_send_json_error('Invalid status');
+        }
+
         $result = $this->database->update_gift_certificate_status($certificate_id, $status);
-        
+
         if ($result) {
             wp_send_json_success('Status updated successfully');
         } else {
