@@ -278,10 +278,18 @@ class GiftCertificateAPI {
      * @return true|WP_Error
      */
     private function check_rate_limit($request) {
-        $ip = sanitize_text_field( wp_get_user_ip() );
-        if ( empty( $ip ) ) {
+        $ip = rest_get_ip_address();
+        if ( empty( $ip ) && ! empty( $_SERVER['REMOTE_ADDR'] ) ) {
+            $ip = $_SERVER['REMOTE_ADDR'];
+        }
+        $ip = sanitize_text_field( $ip );
+
+        if ( $ip && filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+            $ip = inet_ntop( inet_pton( $ip ) );
+        } else {
             $ip = 'unknown';
         }
+
         $key = 'gcff_balance_' . md5( $ip );
         $requests = (int) get_transient( $key );
 
