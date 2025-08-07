@@ -326,6 +326,7 @@ class GiftCertificateDatabase {
         
         $defaults = array(
             'status' => 'active',
+            'search' => '',
             'limit' => 20,
             'offset' => 0,
             'orderby' => 'created_at',
@@ -346,6 +347,12 @@ class GiftCertificateDatabase {
             $where_clause .= " AND recipient_email = %s";
             $where_values[] = $args['recipient_email'];
         }
+
+        if (!empty($args['search'])) {
+            $like = '%' . $wpdb->esc_like($args['search']) . '%';
+            $where_clause .= " AND (coupon_code LIKE %s OR recipient_email LIKE %s OR recipient_name LIKE %s OR sender_name LIKE %s)";
+            $where_values = array_merge($where_values, array($like, $like, $like, $like));
+        }
         
         $orderby = sanitize_sql_orderby($args['orderby'] . ' ' . $args['order']);
         $limit = intval($args['limit']);
@@ -365,7 +372,7 @@ class GiftCertificateDatabase {
     
     public function get_gift_certificates_count($args = array()) {
         global $wpdb;
-        
+
         $where_clause = "WHERE 1=1";
         $where_values = array();
         
@@ -378,7 +385,13 @@ class GiftCertificateDatabase {
             $where_clause .= " AND recipient_email = %s";
             $where_values[] = $args['recipient_email'];
         }
-        
+
+        if (!empty($args['search'])) {
+            $like = '%' . $wpdb->esc_like($args['search']) . '%';
+            $where_clause .= " AND (coupon_code LIKE %s OR recipient_email LIKE %s OR recipient_name LIKE %s OR sender_name LIKE %s)";
+            $where_values = array_merge($where_values, array($like, $like, $like, $like));
+        }
+
         $sql = "SELECT COUNT(*) FROM {$this->gift_certificates_table} {$where_clause}";
         
         if (!empty($where_values)) {
