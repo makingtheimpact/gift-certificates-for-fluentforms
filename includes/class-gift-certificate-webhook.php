@@ -106,9 +106,14 @@ class GiftCertificateWebhook {
                 throw new Exception('Required fields are missing - Amount: ' . ($amount ?: 'empty') . ', Email: ' . ($recipient_email ? gcff_mask_email($recipient_email) : 'empty') . ', Name: ' . ($recipient_name ? gcff_mask_string($recipient_name) : 'empty'));
             }
             
-            // Validate amount
-            $amount = floatval($amount);
-            if ($amount <= 0) {
+            // Validate amount using bcmath for precision
+            $scale  = (int) apply_filters('gcff_decimal_scale', 4);
+            $amount = preg_replace('/[^0-9.]/', '', (string) $amount);
+            if ($amount === '') {
+                $amount = '0';
+            }
+            $amount = bcadd($amount, '0', $scale);
+            if (bccomp($amount, '0', $scale) !== 1) {
                 throw new Exception('Invalid gift certificate amount');
             }
             
