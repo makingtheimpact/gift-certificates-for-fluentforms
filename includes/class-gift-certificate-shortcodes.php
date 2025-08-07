@@ -117,9 +117,9 @@ class GiftCertificateShortcodes {
             );
             
             wp_localize_script('gift-certificate-balance-check', 'giftCertificateAPI', array(
-                'restUrl' => rest_url('gift-certificates/v1'),
+                'restUrl' => rest_url('gift-certificates/v1/'),
                 'nonce' => wp_create_nonce('wp_rest')
             ));
         }
     }
-} 
+}
