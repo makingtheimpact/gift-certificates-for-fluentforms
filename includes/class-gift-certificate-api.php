@@ -334,7 +334,7 @@ class GiftCertificateAPI {
             );
             
             wp_localize_script('gift-certificate-balance-check', 'giftCertificateAPI', array(
-                'restUrl' => rest_url($this->namespace),
+                'restUrl' => rest_url($this->namespace . '/'),
                 'nonce' => wp_create_nonce('wp_rest')
             ));
         }
