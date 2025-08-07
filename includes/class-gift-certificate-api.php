@@ -274,9 +274,12 @@ class GiftCertificateAPI {
      * @return true|WP_Error
      */
     private function check_rate_limit($request) {
-        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-        $key = 'gcff_balance_' . md5($ip);
-        $requests = (int) get_transient($key);
+        $ip = sanitize_text_field( wp_get_user_ip() );
+        if ( empty( $ip ) ) {
+            $ip = 'unknown';
+        }
+        $key = 'gcff_balance_' . md5( $ip );
+        $requests = (int) get_transient( $key );
 
         if ($requests >= 5) {
             return new WP_Error(
