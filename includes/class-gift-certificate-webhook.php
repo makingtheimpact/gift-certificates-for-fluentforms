@@ -365,6 +365,16 @@ class GiftCertificateWebhook {
      */
     private function calculate_order_total($form_data) {
         // Determine the total order amount from form data.
+        // First, check if a payment summary field is present and use its subtotal.
+        foreach ($form_data as $key => $value) {
+            if (is_array($value) && isset($value['subtotal']) && isset($value['items'])) {
+                $subtotal = $this->sanitize_amount($value['subtotal']);
+                if (bccomp($subtotal, '0', $this->scale) === 1) {
+                    gcff_log("Gift Certificate Webhook: Using payment summary field '{$key}' subtotal {$subtotal}");
+                    return $subtotal;
+                }
+            }
+        }
 
         $total = '0';
 

@@ -91,6 +91,22 @@ $form_data = array(
 );
 assert($coupon->total($form_data) === '0.0000');
 
+// --- Test payment summary subtotal ---
+$gcff_test_settings = array();
+$form_data = array(
+    'payment_summary' => array(
+        'items' => array(
+            array('label' => 'Product A', 'quantity' => 1, 'price' => 50),
+            array('label' => 'Product B', 'quantity' => 2, 'price' => 30),
+        ),
+        'subtotal' => 110,
+        'discount' => 10,
+        'total' => 100,
+    ),
+);
+assert($coupon->total($form_data) === '110.0000');
+assert($webhook->total($form_data) === '110.0000');
+
 // --- Webhook: test array values with quantity ---
 $gcff_test_settings = array('order_total_field_name' => 'payment_input');
 $form_data = array(
