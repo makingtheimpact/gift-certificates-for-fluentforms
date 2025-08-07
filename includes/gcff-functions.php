@@ -58,6 +58,13 @@ if (!function_exists('bcsub')) {
     }
 }
 
+if (!function_exists('bcmul')) {
+    function bcmul($left_operand, $right_operand, $scale = 0) {
+        $result = (float) $left_operand * (float) $right_operand;
+        return number_format($result, (int) $scale, '.', '');
+    }
+}
+
 if (!function_exists('bccomp')) {
     function bccomp($left_operand, $right_operand, $scale = 0) {
         $left  = round((float) $left_operand, (int) $scale);
