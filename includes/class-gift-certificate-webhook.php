@@ -314,27 +314,21 @@ class GiftCertificateWebhook {
             gcff_log("Gift Certificate Webhook: Found gift certificate - ID: {$gift_certificate->id}, Status: {$gift_certificate->status}, Balance: {$gift_certificate->current_balance}");
 
             // First try to get discount from the stored submission meta
-            $discount_amount = $this->get_submission_discount($entry_id);
+            $discount_amount = isset($form_data['gc_discount_applied']) ? floatval($form_data['gc_discount_applied']) : null;
+
+            if ($discount_amount === null || $discount_amount <= 0) {
+                gcff_log("Gift Certificate Webhook: ERROR - Hidden field gc_discount_applied not found or invalid.");
+                return;
+            }
 
             if ($discount_amount === null) {
-                // Fall back to checking the form data for a payment summary field
-                $discount_amount = $this->get_payment_summary_discount($form_data);
+                gcff_log("Gift Certificate Webhook: ERROR - Discount amount not found in submission or payment summary. Aborting to prevent incorrect deduction.");
+                return;
             }
 
-            if ($discount_amount !== null) {
-                gcff_log("Gift Certificate Webhook: Using payment summary discount: {$discount_amount}");
-                $amount_to_deduct = $discount_amount;
-            } else {
-                // Fall back to calculating the order total to determine how much to deduct
-                $order_total = $this->sanitize_amount($this->calculate_order_total($form_data));
+            $amount_to_deduct = $discount_amount;
+            gcff_log("Gift Certificate Webhook: Using verified discount amount: {$amount_to_deduct}");
 
-                if (bccomp($order_total, '0', $this->scale) !== 1) {
-                    gcff_log("Gift Certificate Webhook: Invalid order total: {$order_total}");
-                    return;
-                }
-
-                $amount_to_deduct = $order_total;
-            }
 
             // Determine the amount to deduct (either the calculated amount or the remaining balance)
             $current_balance  = $this->sanitize_amount($gift_certificate->current_balance);
