@@ -238,9 +238,25 @@ class GiftCertificateCoupon {
                 continue;
             }
 
-            $value = $this->sanitize_amount($form_data[$field]);
+            $raw_value = $form_data[$field];
+            $values    = is_array($raw_value) ? $raw_value : array($raw_value);
 
-            if (bccomp($value, '0', $this->scale) !== 1) {
+            $value_total = '0';
+            foreach ($values as $item) {
+                if (is_array($item)) {
+                    $item = implode(' ', $item);
+                }
+
+                preg_match_all('/[0-9]+(?:\.[0-9]{2})?/', (string) $item, $matches);
+                if (empty($matches[0])) {
+                    continue;
+                }
+
+                $last_match  = end($matches[0]);
+                $value_total = bcadd($value_total, $this->sanitize_amount($last_match), $this->scale);
+            }
+
+            if (bccomp($value_total, '0', $this->scale) !== 1) {
                 continue;
             }
 
@@ -251,6 +267,7 @@ class GiftCertificateCoupon {
                 $field . '_quantity',
                 $field . '_qty',
                 $field . '-quantity',
+                $field . '-qty',
             );
             foreach ($quantity_patterns as $qfield) {
                 if (isset($form_data[$qfield])) {
@@ -278,7 +295,7 @@ class GiftCertificateCoupon {
                 continue;
             }
 
-            $field_total = bcmul($value, (string) $quantity, $this->scale);
+            $field_total = bcmul($value_total, (string) $quantity, $this->scale);
             $total = bcadd($total, $field_total, $this->scale);
         }
 

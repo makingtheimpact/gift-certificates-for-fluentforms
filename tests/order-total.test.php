@@ -124,6 +124,13 @@ $form_data = array(
 );
 assert($webhook->total($form_data) === '30.0000');
 
+// --- Webhook: ignore numeric identifiers in labels ---
+$gcff_test_settings = array('order_total_field_name' => 'payment_input');
+$form_data = array(
+    'payment_input' => array('Payment Item 2 $50', 'Payment Item 3 $30'),
+);
+assert($webhook->total($form_data) === '80.0000');
+
 // --- Test no matching payment fields ---
 $gcff_test_settings = array('order_total_field_name' => 'payment_input');
 $form_data = array();
