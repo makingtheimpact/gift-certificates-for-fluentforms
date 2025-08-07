@@ -39,6 +39,12 @@ class OrderTotalTestCoupon extends GiftCertificateCoupon {
         $method->setAccessible(true);
         return $method->invoke($this, $form_data);
     }
+    public function discount($form_data) {
+        $ref = new ReflectionClass(GiftCertificateCoupon::class);
+        $method = $ref->getMethod('get_payment_summary_discount');
+        $method->setAccessible(true);
+        return $method->invoke($this, $form_data);
+    }
 }
 
 $coupon = new OrderTotalTestCoupon();
@@ -49,6 +55,12 @@ class OrderTotalTestWebhook extends GiftCertificateWebhook {
     public function total($form_data) {
         $ref = new ReflectionClass(GiftCertificateWebhook::class);
         $method = $ref->getMethod('calculate_order_total');
+        $method->setAccessible(true);
+        return $method->invoke($this, $form_data);
+    }
+    public function discount($form_data) {
+        $ref = new ReflectionClass(GiftCertificateWebhook::class);
+        $method = $ref->getMethod('get_payment_summary_discount');
         $method->setAccessible(true);
         return $method->invoke($this, $form_data);
     }
@@ -106,6 +118,8 @@ $form_data = array(
 );
 assert($coupon->total($form_data) === '110.0000');
 assert($webhook->total($form_data) === '110.0000');
+assert($coupon->discount($form_data) === '10.0000');
+assert($webhook->discount($form_data) === '10.0000');
 
 // --- Webhook: test array values with quantity ---
 $gcff_test_settings = array('order_total_field_name' => 'payment_input');
