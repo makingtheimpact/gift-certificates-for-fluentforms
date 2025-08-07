@@ -514,11 +514,7 @@ class GiftCertificateAdmin {
     }
     
     private function delete_fluent_forms_coupon($coupon_code) {
-        if (!class_exists('FluentFormPro\Classes\Coupon\CouponService')) {
-            return false;
-        }
-        
-        if (!method_exists($this, 'get_coupon_table_name')) {
+        if (!function_exists('wpFluent')) {
             return false;
         }
 
@@ -529,18 +525,11 @@ class GiftCertificateAdmin {
         }
 
         try {
-            $coupon_service = new FluentFormPro\Classes\Coupon\CouponService();
-
-            $coupon = wpFluent()->table($coupon_table_name)
+            wpFluent()->table($coupon_table_name)
                 ->where('code', $coupon_code)
-                ->first();
-
-            if ($coupon) {
-                $coupon_service->delete($coupon->id);
-            }
+                ->delete();
 
             return true;
-
         } catch (Exception $e) {
             gcff_log("Failed to delete Fluent Forms coupon: " . $e->getMessage());
             return false;
