@@ -228,6 +228,7 @@ class GiftCertificatesForFluentForms {
             'design_field_name' => 'gift_certificate_design',
             'allowed_form_ids' => array(), // Empty array means all forms are allowed
             'order_total_field_name' => '',
+            'discount_field_name' => 'gc_discount_applied',
             'email_template' => $this->get_default_email_template(),
             'api_enabled' => true,
             'balance_check_enabled' => true,
