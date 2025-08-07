@@ -11,18 +11,19 @@ function do_action() {}
 function has_action() { return false; }
 function gcff_log() {}
 
-// Storage for settings that calculate_order_total reads.
-$GLOBALS['gcff_test_settings'] = array();
+// Provide minimal WordPress option and filter handling for tests.
 function get_option($name, $default = array()) {
-    global $gcff_test_settings;
-    if ($name === 'gift_certificates_ff_settings') {
-        return $gcff_test_settings;
-    }
     return $default;
 }
 
-// Basic passthrough apply_filters implementation.
-function apply_filters($tag, $value, ...$args) { return $value; }
+$GLOBALS['gcff_order_total_fields'] = null;
+function apply_filters($tag, $value, ...$args) {
+    global $gcff_order_total_fields;
+    if ($tag === 'gcff_order_total_fields' && is_array($gcff_order_total_fields)) {
+        return $gcff_order_total_fields;
+    }
+    return $value;
+}
 
 require_once __DIR__ . '/../includes/class-gift-certificate-coupon.php';
 require_once __DIR__ . '/../includes/class-gift-certificate-webhook.php';
@@ -69,7 +70,7 @@ class OrderTotalTestWebhook extends GiftCertificateWebhook {
 $webhook = new OrderTotalTestWebhook();
 
 // --- Test single payment field with quantity ---
-$gcff_test_settings = array('order_total_field_name' => 'payment_input');
+$gcff_order_total_fields = null;
 $form_data = array(
     'payment_input' => '10',
     'payment_input_quantity' => '2',
@@ -77,7 +78,7 @@ $form_data = array(
 assert($coupon->total($form_data) === '20.0000');
 
 // --- Test multiple payment fields with individual quantities ---
-$gcff_test_settings = array('order_total_field_name' => 'payment_input,additional_payment');
+$gcff_order_total_fields = array('payment_input', 'additional_payment');
 $form_data = array(
     'payment_input' => '10',
     'payment_input_quantity' => '2',
@@ -87,7 +88,7 @@ $form_data = array(
 assert($coupon->total($form_data) === '35.0000');
 
 // --- Test multiple payment fields with global quantity fallback ---
-$gcff_test_settings = array('order_total_field_name' => 'payment_input,additional_payment');
+$gcff_order_total_fields = array('payment_input', 'additional_payment');
 $form_data = array(
     'payment_input' => '10',
     'additional_payment' => '5',
@@ -96,7 +97,7 @@ $form_data = array(
 assert($coupon->total($form_data) === '30.0000');
 
 // --- Test zero quantity ---
-$gcff_test_settings = array('order_total_field_name' => 'payment_input');
+$gcff_order_total_fields = null;
 $form_data = array(
     'payment_input' => '10',
     'payment_input_quantity' => '0',
@@ -104,7 +105,7 @@ $form_data = array(
 assert($coupon->total($form_data) === '0.0000');
 
 // --- Test payment summary subtotal ---
-$gcff_test_settings = array();
+$gcff_order_total_fields = null;
 $form_data = array(
     'payment_summary' => array(
         'items' => array(
@@ -122,7 +123,7 @@ assert($coupon->discount($form_data) === '10.0000');
 assert($webhook->discount($form_data) === '10.0000');
 
 // --- Webhook: test array values with quantity ---
-$gcff_test_settings = array('order_total_field_name' => 'payment_input');
+$gcff_order_total_fields = null;
 $form_data = array(
     'payment_input' => array('Item A - $5', 'Item B - $2.50'),
     'payment_input_quantity' => '3',
@@ -130,7 +131,7 @@ $form_data = array(
 assert($webhook->total($form_data) === '22.5000');
 
 // --- Webhook: multiple fields with global quantity fallback ---
-$gcff_test_settings = array('order_total_field_name' => 'payment_input,additional_payment');
+$gcff_order_total_fields = array('payment_input', 'additional_payment');
 $form_data = array(
     'payment_input' => 'Price $10',
     'additional_payment' => 'Fee $5',
@@ -139,14 +140,14 @@ $form_data = array(
 assert($webhook->total($form_data) === '30.0000');
 
 // --- Webhook: ignore numeric identifiers in labels ---
-$gcff_test_settings = array('order_total_field_name' => 'payment_input');
+$gcff_order_total_fields = null;
 $form_data = array(
     'payment_input' => array('Payment Item 2 $50', 'Payment Item 3 $30'),
 );
 assert($webhook->total($form_data) === '80.0000');
 
 // --- Test no matching payment fields ---
-$gcff_test_settings = array('order_total_field_name' => 'payment_input');
+$gcff_order_total_fields = null;
 $form_data = array();
 assert($coupon->total($form_data) === '0.0000');
 

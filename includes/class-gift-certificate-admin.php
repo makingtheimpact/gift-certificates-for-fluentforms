@@ -122,14 +122,6 @@ class GiftCertificateAdmin {
         );
 
         add_settings_field(
-            'order_total_field_name',
-            __('Order Total Field', 'gift-certificates-fluentforms'),
-            array($this, 'order_total_field'),
-            'gift_certificates_ff_settings',
-            'gift_certificates_ff_general'
-        );
-
-        add_settings_field(
             'discount_field_name',
             __('Discount Field Name', 'gift-certificates-fluentforms'),
             array($this, 'discount_field'),
@@ -649,12 +641,6 @@ class GiftCertificateAdmin {
         echo '<p class="description">' . __('Select the forms where gift certificates can be redeemed. Leave empty to allow all forms.', 'gift-certificates-fluentforms') . '</p>';
     }
 
-    public function order_total_field() {
-        $value = $this->settings['order_total_field_name'] ?? '';
-        echo "<input type='text' name='gift_certificates_ff_settings[order_total_field_name]' value='" . esc_attr($value) . "' class='regular-text'>";
-        echo '<p class="description">' . __('Field names containing payment amounts in redemption forms. Separate multiple fields with commas; amounts from all matching fields will be summed and multiplied by their quantities.', 'gift-certificates-fluentforms') . '</p>';
-    }
-
     public function discount_field() {
         $value = $this->settings['discount_field_name'] ?? 'gc_discount_applied';
         echo "<input type='text' name='gift_certificates_ff_settings[discount_field_name]' value='" . esc_attr($value) . "' class='regular-text'>";
@@ -733,7 +719,7 @@ class GiftCertificateAdmin {
         $field_names = array(
             'amount_field_name', 'recipient_email_field_name', 'recipient_name_field_name',
             'sender_name_field_name', 'message_field_name', 'delivery_date_field_name', 'design_field_name',
-            'order_total_field_name', 'discount_field_name'
+            'discount_field_name'
         );
         
         foreach ($field_names as $field) {
